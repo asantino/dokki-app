@@ -5,16 +5,20 @@ class Business {
   final String? botToken;
   final String? telegramGroupId;
   final String status;
-  final DateTime createdAt;
+  final String? createdAt;
+  final String? botSupabaseUrl;
+  final String? botSupabaseAnonKey;
 
-  const Business({
+  Business({
     required this.id,
     required this.userId,
     required this.botId,
     this.botToken,
     this.telegramGroupId,
     required this.status,
-    required this.createdAt,
+    this.createdAt,
+    this.botSupabaseUrl,
+    this.botSupabaseAnonKey,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
@@ -25,7 +29,9 @@ class Business {
       botToken: json['bot_token'] as String?,
       telegramGroupId: json['telegram_group_id'] as String?,
       status: json['status'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] as String?,
+      botSupabaseUrl: json['bot_supabase_url'] as String?,
+      botSupabaseAnonKey: json['bot_supabase_anon_key'] as String?,
     );
   }
 }

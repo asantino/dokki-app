@@ -1,23 +1,42 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../core/supabase/supabase_client.dart';
 import '../domain/business.dart';
 import '../domain/business_repository.dart';
 import '../data/business_repository_impl.dart';
 import '../data/telegram_repository.dart';
+import '../data/appointments_repository.dart';
 
-/// Провайдер для работы с базой данных (бизнес-логика подключений)
-final businessRepositoryProvider = Provider<BusinessRepository>((ref) {
-  final supabase = ref.watch(supabaseClientProvider);
-  return BusinessRepositoryImpl(supabase);
-});
-
-/// Провайдер для валидации токенов напрямую через Telegram API
+// 1. Провайдер Telegram API
 final telegramRepositoryProvider = Provider<TelegramRepository>((ref) {
   return TelegramRepository();
 });
 
-/// Провайдер списка всех подключенных ботов текущего пользователя.
-/// Использует FutureProvider для автоматической обработки асинхронных данных.
+// 2. Провайдер управления ботами
+final businessRepositoryProvider = Provider<BusinessRepository>((ref) {
+  return BusinessRepositoryImpl(ref.watch(supabaseClientProvider));
+});
+
+// 3. Провайдер списка подключенных ботов (НУЖЕН ДЛЯ КАТАЛОГА)
 final connectedBotsProvider = FutureProvider<List<Business>>((ref) async {
-  return ref.watch(businessRepositoryProvider).getConnectedBots();
+  final repository = ref.watch(businessRepositoryProvider);
+  return repository.getBusinesses();
+});
+
+// 4. Провайдер репозитория записей (TomatoAdmin)
+final appointmentsRepositoryProvider =
+    Provider.family<AppointmentsRepository, Business>((ref, business) {
+  final client = SupabaseClient(
+    business.botSupabaseUrl!,
+    business.botSupabaseAnonKey!,
+  );
+  return AppointmentsRepository(client);
+});
+
+// 5. Провайдер списка записей
+final appointmentsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, Business>(
+        (ref, business) async {
+  return ref.watch(appointmentsRepositoryProvider(business)).getAppointments();
 });

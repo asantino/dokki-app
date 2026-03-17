@@ -3,20 +3,34 @@ import '../domain/business.dart';
 import '../domain/business_repository.dart';
 
 class BusinessRepositoryImpl implements BusinessRepository {
-  final SupabaseClient _supabase;
+  final SupabaseClient _client;
 
-  BusinessRepositoryImpl(this._supabase);
+  BusinessRepositoryImpl(this._client);
+
+  @override
+  Future<List<Business>> getBusinesses() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('Пользователь не авторизован');
+
+    final response = await _client
+        .from('businesses')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+
+    return (response as List).map((json) => Business.fromJson(json)).toList();
+  }
 
   @override
   Future<Business> connectBot({
     required String botId,
     required String botToken,
   }) async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('Пользователь не авторизован');
 
-    // .select().single() возвращает Map с данными созданной записи
-    final response = await _supabase
+    // При вставке возвращаем все поля, включая bot_supabase_url и anon_key
+    final response = await _client
         .from('businesses')
         .insert({
           'user_id': userId,
@@ -31,21 +45,14 @@ class BusinessRepositoryImpl implements BusinessRepository {
   }
 
   @override
-  Future<List<Business>> getConnectedBots() async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) throw Exception('Пользователь не авторизован');
+  Future<Business> updateBusiness(String id, Map<String, dynamic> data) async {
+    final response = await _client
+        .from('businesses')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
 
-    final response =
-        await _supabase.from('businesses').select().eq('user_id', userId);
-
-    return (response as List).map((json) => Business.fromJson(json)).toList();
-  }
-
-  @override
-  Future<Business?> getBusinessById(String id) async {
-    final response =
-        await _supabase.from('businesses').select().eq('id', id).maybeSingle();
-
-    return response != null ? Business.fromJson(response) : null;
+    return Business.fromJson(response);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/business.dart';
+import 'appointments_screen.dart';
 
 class BotManagementScreen extends ConsumerWidget {
   final Business business;
@@ -10,109 +11,99 @@ class BotManagementScreen extends ConsumerWidget {
     required this.business,
   });
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return Colors.green;
-      case 'pending':
-        return Colors.orange;
-      case 'inactive':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statusColor = _getStatusColor(business.status);
-    final dateString = business.createdAt.toString().split(' ')[0];
+    final bool isActivated = business.telegramGroupId != null;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Управление ботом'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Карточка основной информации
-            Card(
-              child: ListTile(
-                title: Text(
-                  business.botId.toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text('Подключен: $dateString'),
-                trailing: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: statusColor),
-                  ),
-                  child: Text(
-                    business.status.toUpperCase(),
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
+            // Карточка статуса бота
+            _buildStatusCard(isActivated),
+            const SizedBox(height: 24),
 
-            // Секция управления
+            // Основные действия
             const Text(
-              'Доступные действия',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              'Действия',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
+            // Кнопка записей (Твое задание)
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Скоро')),
-                  );
-                },
-                icon: const Icon(Icons.settings),
-                label: const Text('Настройки'),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AppointmentsScreen(business: business),
+                  ),
+                ),
+                icon: const Icon(Icons.calendar_today),
+                label: const Text('Записи'),
               ),
             ),
 
-            const Spacer(),
+            const SizedBox(height: 12),
 
-            // Инфо-блок для ожидающих деплоя
-            if (business.status == 'pending')
-              Card(
-                color: Colors.amber.withValues(alpha: 0.1),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(color: Colors.amber.withValues(alpha: 0.3)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.hourglass_empty, color: Colors.orange),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Бот в очереди на деплой. Это может занять несколько минут.',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    ],
+            // Кнопка активации (появится, если группа еще не привязана)
+            if (!isActivated)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // TODO: Логика Stage 2.2 (Активация группы)
+                  },
+                  icon: const Icon(Icons.group_add),
+                  label: const Text('Активировать группу'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusCard(bool isActivated) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(
+              isActivated ? Icons.check_circle : Icons.error_outline,
+              color: isActivated ? Colors.green : Colors.orange,
+              size: 40,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isActivated ? 'Бот активен' : 'Требуется настройка',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  Text(
+                    isActivated
+                        ? 'Бот готов к приему заказов в группе'
+                        : 'Добавьте бота в группу Telegram для получения уведомлений',
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
