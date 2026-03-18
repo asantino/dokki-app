@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../../../../core/theme/app_theme.dart'; // Импорт темы
 import '../../domain/business.dart';
 import '../../providers/bot_management_providers.dart';
 
@@ -30,11 +30,11 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
     super.dispose();
   }
 
+  // ЛОГИКА ОСТАВЛЕНА БЕЗ ИЗМЕНЕНИЙ
   Future<void> _saveConfig() async {
     setState(() => _isSaving = true);
     try {
       final repo = ref.read(botConfigRepositoryProvider(widget.business));
-      // Используем botBusinessId для сохранения в удаленную базу, с фолбэком на локальный id
       final businessId = widget.business.botBusinessId ?? widget.business.id;
 
       await repo.updateSystemPrompt(
@@ -46,7 +46,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
         _welcomeMessageController.text.trim(),
       );
 
-      // Обновляем данные в кэше
       ref.invalidate(botConfigProvider(widget.business));
 
       if (mounted) {
@@ -73,9 +72,32 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
     }
   }
 
+  // Хелпер для InputDecoration (как в ConnectBotScreen)
+  InputDecoration _buildInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: AppColors.textSecondary),
+      filled: true,
+      fillColor: AppColors.card,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.border, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.accent, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Инициализация контроллеров при первой загрузке данных
+    // Инициализация контроллеров оставлена без изменений
     ref.listen<AsyncValue<Map<String, dynamic>?>>(
       botConfigProvider(widget.business),
       (previous, next) {
@@ -93,51 +115,88 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
     final configAsync = ref.watch(botConfigProvider(widget.business));
 
     return Scaffold(
+      backgroundColor: AppColors.background, // Тёмный фон
       appBar: AppBar(
         title: const Text('Настройки ИИ'),
+        centerTitle: false,
       ),
       body: configAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Ошибка: $err')),
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.accent)),
+        error: (err, stack) => Center(
+            child: Text('Ошибка: $err',
+                style: const TextStyle(color: Colors.white))),
         data: (_) => SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Системный промпт',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'СИСТЕМНЫЙ ПРОМПТ',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 1.2,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               TextField(
                 controller: _systemPromptController,
                 maxLines: 10,
-                decoration: const InputDecoration(
-                  hintText: 'Инструкции для ИИ...',
-                  border: OutlineInputBorder(),
+                style: const TextStyle(
+                    color: Colors.white, fontSize: 15, height: 1.4),
+                decoration: _buildInputDecoration(
+                    'Инструкции для ИИ: как он должен общаться, какие услуги предлагать...'),
+                enabled: !_isSaving,
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'ПРИВЕТСТВИЕ',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Приветствие',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               TextField(
                 controller: _welcomeMessageController,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Текст первого сообщения...',
-                  border: OutlineInputBorder(),
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+                decoration: _buildInputDecoration(
+                    'Текст, который бот напишет первым...'),
+                enabled: !_isSaving,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 48),
+
+              // Акцентная кнопка сохранения
               SizedBox(
                 width: double.infinity,
+                height: 56,
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveConfig,
-                  child:
-                      Text(_isSaving ? 'Сохранение...' : 'Сохранить изменения'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'СОХРАНИТЬ ИЗМЕНЕНИЯ',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, letterSpacing: 1),
+                        ),
                 ),
               ),
             ],

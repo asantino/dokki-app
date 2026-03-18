@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/bot_management_providers.dart';
+import '../../../../core/theme/app_theme.dart'; // Импорт темы
 
 class ConnectBotScreen extends ConsumerStatefulWidget {
   final String botId;
@@ -18,7 +19,7 @@ class ConnectBotScreen extends ConsumerStatefulWidget {
 }
 
 class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
-  // ИСПРАВЛЕНО: Поле пустое, токен больше не хардкодим
+  // Поле пустое, токен не хардкодим
   final _tokenController = TextEditingController();
   bool _isLoading = false;
 
@@ -28,6 +29,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
     super.dispose();
   }
 
+  // ЛОГИКА ОСТАВЛЕНА БЕЗ ИЗМЕНЕНИЙ
   Future<void> _connect() async {
     final token = _tokenController.text.trim();
     if (token.isEmpty) {
@@ -78,52 +80,129 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
     }
   }
 
+  // Хелпер для стиля поля ввода
+  InputDecoration _buildInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: AppColors.textSecondary),
+      filled: true,
+      fillColor: AppColors.card,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.border, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.accent, width: 2),
+      ),
+      prefixIcon:
+          const Icon(Icons.vpn_key_rounded, color: AppColors.textSecondary),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Подключение ${widget.botName}')),
+      backgroundColor: AppColors.background, // Тёмный фон
+      appBar: AppBar(
+        title: Text('Подключение ${widget.botName}'),
+        centerTitle: false,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Инструкция:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              'ИНСТРУКЦИЯ',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                letterSpacing: 1.2,
+              ),
             ),
             const SizedBox(height: 12),
-            Card(
-              color: Colors.blue.withValues(alpha: 0.05),
-              child: const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  '1. Откройте @BotFather.\n'
-                  '2. Сгенерируйте НОВЫЙ токен (Revoke), если старый был скомпрометирован.\n'
-                  '3. Вставьте новый токен в поле ниже.',
-                  style: TextStyle(height: 1.5),
+
+            // Инструкция в стилизованном контейнере
+            Container(
+              padding: const EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border, width: 1),
+              ),
+              child: const Text(
+                '1. Откройте @BotFather.\n'
+                '2. Сгенерируйте НОВЫЙ токен (Revoke), если старый был скомпрометирован.\n'
+                '3. Вставьте новый токен в поле ниже.',
+                style: TextStyle(
+                  height: 1.6,
+                  color: Colors.white,
+                  fontSize: 14,
                 ),
               ),
             ),
+
             const SizedBox(height: 32),
+
+            const Text(
+              'API ТОКЕН',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Поле ввода токена
             TextField(
               controller: _tokenController,
-              decoration: const InputDecoration(
-                labelText: 'Bot API Token',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.vpn_key),
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              decoration: _buildInputDecoration('Bot API Token'),
               enabled: !_isLoading,
               autocorrect: false,
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 40),
+
+            // Акцентная кнопка
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 56,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _connect,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Проверить и подключить'),
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'ПРОВЕРИТЬ И ПОДКЛЮЧИТЬ',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
               ),
             ),
           ],
