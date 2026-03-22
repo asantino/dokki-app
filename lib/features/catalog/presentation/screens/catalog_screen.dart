@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// Исправлено: путь до папки providers на два уровня выше
 import '../../providers/catalog_providers.dart';
 import '../widgets/bot_card.dart';
 
@@ -38,8 +37,7 @@ class CatalogScreen extends ConsumerWidget {
 
               return BotCard(
                 bot: bot,
-                onConnect: () =>
-                    context.push('/connect-bot/${bot.id}/${bot.name}'),
+                onTap: () => context.push('/connect-bot/${bot.id}/${bot.name}'),
               );
             },
           );
