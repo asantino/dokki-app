@@ -4,6 +4,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/providers/auth_providers.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/localization/language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -13,11 +15,19 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  String _selectedLanguage = 'Русский';
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
+    final s = ref.watch(stringsProvider);
+    final currentLang = ref.watch(languageProvider);
+
+    // Маппинг для отображения названия текущего языка в субтитре
+    final String langName = switch (currentLang) {
+      AppLanguage.ru => 'Русский',
+      AppLanguage.en => 'English',
+      AppLanguage.ar => 'العربية',
+    };
+
     final user = authState.when(
       data: (user) => user,
       loading: () => null,
@@ -27,9 +37,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Настройки',
-          style: TextStyle(
+        title: Text(
+          s.navSettings,
+          style: const TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.bold,
               fontFamily: 'Inter'),
@@ -42,8 +52,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         children: [
           _buildListTile(
             icon: FontAwesomeIcons.user,
-            title: 'Аккаунт',
-            subtitle: user?.email ?? 'Войти',
+            title: s.setAccount,
+            subtitle: user?.email ?? s.authLogin,
             onTap: () {
               if (user == null) {
                 context.push('/auth');
@@ -55,28 +65,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(color: AppColors.border, height: 1),
           _buildListTile(
             icon: FontAwesomeIcons.globe,
-            title: 'Язык',
-            subtitle: _selectedLanguage,
-            onTap: () async {
-              final result = await context.push<String>('/language');
-              if (result != null) {
-                setState(() => _selectedLanguage = result);
-              }
-            },
+            title: s.setLanguage,
+            subtitle: langName,
+            onTap: () => context.push('/language'),
           ),
           const Divider(color: AppColors.border, height: 1),
           _buildListTile(
             icon: FontAwesomeIcons.bell,
-            title: 'Уведомления',
-            subtitle: 'Настройки уведомлений',
+            title: s.setNotifications,
+            subtitle: s.setNotifSettings,
             onTap: () => context.push('/notifications'),
           ),
           const Divider(color: AppColors.border, height: 1),
           _buildListTile(
             icon: FontAwesomeIcons.circleInfo,
-            title: 'О приложении',
-            subtitle: 'Версия 1.0.0',
-            onTap: _showAboutDialog,
+            title: s.setAbout,
+            subtitle: '${s.setVersion} 1.0.0',
+            onTap: () => _showAboutDialog(s),
           ),
           const Divider(color: AppColors.border, height: 1),
         ],
@@ -125,16 +130,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showAboutDialog() {
+  void _showAboutDialog(AppStrings s) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('О приложении'),
+        backgroundColor: AppColors.surface,
+        title: Text(s.setAbout, style: const TextStyle(color: AppColors.textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Версия 1.0.0',
-                style: TextStyle(color: AppColors.textSecondary)),
+            Text('${s.setVersion} 1.0.0',
+                style: const TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -150,7 +156,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Закрыть'))
+              child: Text(s.profCancel, style: const TextStyle(color: AppColors.accent)))
         ],
       ),
     );
