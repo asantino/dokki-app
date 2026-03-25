@@ -15,7 +15,6 @@ class BotDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Явное указание типа делает импорт используемым
     final AppStrings s = ref.watch(stringsProvider);
 
     return Scaffold(
@@ -62,7 +61,7 @@ class BotDetailScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          bot.category,
+                          s.mapCategory(bot.category),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 8),
@@ -112,7 +111,7 @@ class BotDetailScreen extends ConsumerWidget {
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
-                                        feature['label']?.toString() ?? '',
+                                        s.translateFeature(feature['label']?.toString() ?? ''),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyLarge,

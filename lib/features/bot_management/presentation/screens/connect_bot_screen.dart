@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/env/env.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/localization/language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../../catalog/providers/catalog_providers.dart';
 import '../../providers/bot_management_providers.dart';
 
@@ -31,6 +33,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
   final _workspaceIdController = TextEditingController();
 
   bool _isLoading = false;
+  late AppStrings _s;
 
   @override
   void dispose() {
@@ -41,12 +44,11 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
     super.dispose();
   }
 
-  // Шаг 1: Проверка токена Telegram
   Future<void> _validateTelegramAndProceed() async {
     final token = _botTokenController.text.trim();
     if (token.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, введите токен Telegram')),
+        SnackBar(content: Text(_s.connErrorNoToken)),
       );
       return;
     }
@@ -54,24 +56,18 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Валидация токена через провайдер
       await ref.read(telegramRepositoryProvider).validateToken(token);
-
-      // Переход на следующий экран
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
-      setState(() {
-        _currentStep = 1;
-      });
+      setState(() => _currentStep = 1);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text('Ошибка: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
+            content: Text('${_s.authError}: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -80,7 +76,6 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
     }
   }
 
-  // Шаг 2: Подключение Railway, сохранение в Supabase и деплой
   Future<void> _connect() async {
     final botToken = _botTokenController.text.trim();
     final railwayToken = _railwayTokenController.text.trim();
@@ -88,7 +83,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
 
     if (railwayToken.isEmpty || workspaceId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пожалуйста, заполните данные Railway')),
+        SnackBar(content: Text(_s.connErrorNoRailway)),
       );
       return;
     }
@@ -96,7 +91,6 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Сохранить в Supabase
       final result = await ref.read(businessRepositoryProvider).connectBot(
             botId: widget.botId,
             botToken: botToken,
@@ -104,10 +98,8 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
             railwayWorkspaceId: workspaceId,
           );
 
-      // 2. Получить github_repo из bot_catalog
       final bot = await ref.read(botByIdProvider(widget.botId).future);
 
-      // 3. Вызвать deploy-service
       await http.post(
         Uri.parse('${Env.deployServiceUrl}/deploy'),
         headers: {'Content-Type': 'application/json'},
@@ -123,9 +115,9 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Бот успешно отправлен на деплой!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text(_s.connSuccessDeploy),
+            backgroundColor: AppColors.success,
           ),
         );
 
@@ -138,9 +130,8 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text('Ошибка: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
+            content: Text('${_s.authError}: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -174,12 +165,13 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppStrings s = ref.watch(stringsProvider);
+    _s = s;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(_currentStep == 0
-            ? 'Шаг 1: Подключение Telegram'
-            : 'Шаг 2: Настройка сервера'),
+        title: Text(_currentStep == 0 ? s.connStep1Title : s.connStep2Title),
         centerTitle: false,
         leading: _currentStep == 1
             ? IconButton(
@@ -196,24 +188,24 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
       ),
       body: PageView(
         controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(), // Блокируем ручной свайп
+        physics: const NeverScrollableScrollPhysics(),
         children: [
-          _buildTelegramStep(),
-          _buildRailwayStep(),
+          _buildTelegramStep(s),
+          _buildRailwayStep(s),
         ],
       ),
     );
   }
 
-  Widget _buildTelegramStep() {
+  Widget _buildTelegramStep(AppStrings s) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'ИНСТРУКЦИЯ',
-            style: TextStyle(
+          Text(
+            s.connTelegramInstrTitle,
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -228,18 +220,16 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border, width: 1),
             ),
-            child: const Text(
-              '1. Откройте @BotFather.\n'
-              '2. Сгенерируйте НОВЫЙ токен (Revoke), если старый был скомпрометирован.\n'
-              '3. Вставьте новый токен в поле ниже.',
-              style: TextStyle(
+            child: Text(
+              s.connTelegramInstrBody,
+              style: const TextStyle(
                   height: 1.6, color: AppColors.textPrimary, fontSize: 14),
             ),
           ),
           const SizedBox(height: 32),
-          const Text(
-            'API ТОКЕН',
-            style: TextStyle(
+          Text(
+            s.connTokenLabel,
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -263,7 +253,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
               onPressed: _isLoading ? null : _validateTelegramAndProceed,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.surface,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
@@ -273,11 +263,11 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
                       height: 24,
                       width: 24,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2),
+                          color: AppColors.surface, strokeWidth: 2),
                     )
-                  : const Text(
-                      'ПРОВЕРИТЬ И ПРОДОЛЖИТЬ',
-                      style: TextStyle(
+                  : Text(
+                      s.connBtnContinue,
+                      style: const TextStyle(
                           fontWeight: FontWeight.bold, letterSpacing: 1),
                     ),
             ),
@@ -287,15 +277,15 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
     );
   }
 
-  Widget _buildRailwayStep() {
+  Widget _buildRailwayStep(AppStrings s) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'ИНСТРУКЦИЯ RAILWAY',
-            style: TextStyle(
+          Text(
+            s.connRailwayInstrTitle,
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -310,18 +300,16 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border, width: 1),
             ),
-            child: const Text(
-              '1. Войдите в аккаунт Railway.\n'
-              '2. Создайте API Token в настройках профиля.\n'
-              '3. Скопируйте ваш Workspace ID.',
-              style: TextStyle(
+            child: Text(
+              s.connRailwayInstrBody,
+              style: const TextStyle(
                   height: 1.6, color: AppColors.textPrimary, fontSize: 14),
             ),
           ),
           const SizedBox(height: 32),
-          const Text(
-            'RAILWAY API TOKEN',
-            style: TextStyle(
+          Text(
+            s.connRailwayTokenLabel,
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -338,9 +326,9 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
             autocorrect: false,
           ),
           const SizedBox(height: 24),
-          const Text(
-            'WORKSPACE ID',
-            style: TextStyle(
+          Text(
+            s.connWorkspaceLabel,
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -364,7 +352,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
               onPressed: _isLoading ? null : _connect,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.surface,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
@@ -374,11 +362,11 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
                       height: 24,
                       width: 24,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2),
+                          color: AppColors.surface, strokeWidth: 2),
                     )
-                  : const Text(
-                      'ПОДКЛЮЧИТЬ И ЗАДЕПЛОИТЬ',
-                      style: TextStyle(
+                  : Text(
+                      s.connBtnDeploy,
+                      style: const TextStyle(
                           fontWeight: FontWeight.bold, letterSpacing: 1),
                     ),
             ),

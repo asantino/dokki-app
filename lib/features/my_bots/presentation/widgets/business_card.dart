@@ -75,7 +75,6 @@ class BusinessCard extends ConsumerWidget {
                 ),
               ),
             ),
-
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -95,9 +94,8 @@ class BusinessCard extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-
                     Text(
-                      _getBotCategory(business.botId),
+                      s.mapCategory(business.botId.replaceAll('dokki-', '')),
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,
@@ -105,11 +103,8 @@ class BusinessCard extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-
                     _buildStatusRow(s),
-
                     const Spacer(),
-
                     SizedBox(
                       width: double.infinity,
                       height: 32,
@@ -149,15 +144,6 @@ class BusinessCard extends ConsumerWidget {
         .split('-')
         .map((word) => word[0].toUpperCase() + word.substring(1))
         .join(' ');
-  }
-
-  String _getBotCategory(String botId) {
-    const categoryMap = {
-      'dokki-admin': 'Администратор',
-      'dokki-sales': 'Продавец',
-      'dokki-support': 'Поддержка',
-    };
-    return categoryMap[botId.trim()] ?? '';
   }
 
   Widget _buildStatusRow(AppStrings s) {
