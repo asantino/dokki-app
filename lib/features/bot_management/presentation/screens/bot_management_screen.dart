@@ -20,8 +20,8 @@ class BotManagementScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background, // Тёмный фон
       appBar: AppBar(
-        title: const Text('Управление ботом'),
-        centerTitle: false,
+        title: Text(business.botName ?? 'Управление ботом'),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),

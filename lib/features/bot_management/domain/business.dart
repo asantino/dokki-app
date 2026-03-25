@@ -9,9 +9,15 @@ class Business {
   final String? botSupabaseAnonKey;
   final String? botBusinessId;
   final DateTime? createdAt;
-  // Новые поля для деплоя
+
+  // Поля деплоя
   final String? clientRailwayToken;
   final String? clientRailwayWorkspaceId;
+
+  // Данные из JOIN (bot_catalog)
+  final String? botName;
+  final String? botCategory;
+  final String? specialization;
 
   Business({
     required this.id,
@@ -26,9 +32,15 @@ class Business {
     this.createdAt,
     this.clientRailwayToken,
     this.clientRailwayWorkspaceId,
+    this.botName,
+    this.botCategory,
+    this.specialization,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
+    // Извлекаем вложенный объект из JOIN запроса Supabase
+    final botData = json['bot_catalog'] as Map<String, dynamic>?;
+
     return Business(
       id: json['id'] as String,
       userId: json['user_id'] as String,
@@ -42,9 +54,13 @@ class Business {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
-      // Новые поля из Supabase
       clientRailwayToken: json['client_railway_token'] as String?,
       clientRailwayWorkspaceId: json['client_railway_workspace_id'] as String?,
+
+      // Маппинг данных из bot_catalog
+      botName: botData?['name'] as String?,
+      botCategory: botData?['category'] as String?,
+      specialization: botData?['specialization'] as String?,
     );
   }
 }

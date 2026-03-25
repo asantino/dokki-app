@@ -14,7 +14,7 @@ class BusinessRepositoryImpl implements BusinessRepository {
 
     final response = await _client
         .from('businesses')
-        .select()
+        .select('*, bot_catalog(name, category, specialization)')
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
