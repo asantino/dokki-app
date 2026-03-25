@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/localization/language_provider.dart';
 import '../../providers/catalog_providers.dart';
 import '../widgets/bot_card.dart';
 
@@ -12,11 +13,12 @@ class CatalogScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final botsAsync = ref.watch(botsProvider);
+    final s = ref.watch(stringsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Магазин'),
+        title: Text(s.navShop),
         centerTitle: true,
         backgroundColor: AppColors.background,
         elevation: 0,
@@ -33,10 +35,10 @@ class CatalogScreen extends ConsumerWidget {
         ),
         data: (bots) {
           if (bots.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                'Список пуст',
-                style: TextStyle(color: AppColors.textSecondary),
+                s.catEmpty,
+                style: const TextStyle(color: AppColors.textSecondary),
               ),
             );
           }
@@ -49,7 +51,6 @@ class CatalogScreen extends ConsumerWidget {
 
               return BotCard(
                 bot: bot,
-                // ИСПРАВЛЕНО: возвращен параметр onConnect
                 onConnect: () =>
                     context.push('/bot-detail/${bot.id}', extra: bot),
               );

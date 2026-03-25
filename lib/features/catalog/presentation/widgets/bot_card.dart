@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/localization/language_provider.dart';
 import '../../domain/bot.dart';
 
-class BotCard extends StatelessWidget {
+class BotCard extends ConsumerWidget {
   final Bot bot;
   final VoidCallback onConnect;
 
@@ -14,8 +16,9 @@ class BotCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const double cardHeight = 160.0;
+    final s = ref.watch(stringsProvider);
 
     return GestureDetector(
       onTap: onConnect,
@@ -83,7 +86,6 @@ class BotCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
 
-                    // ДОБАВЛЕНО: Специализация бота
                     Text(
                       bot.category,
                       style: const TextStyle(
@@ -118,9 +120,9 @@ class BotCard extends StatelessWidget {
                           ),
                           padding: EdgeInsets.zero,
                         ),
-                        child: const Text(
-                          'Подробнее',
-                          style: TextStyle(
+                        child: Text(
+                          s.catDetails,
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
