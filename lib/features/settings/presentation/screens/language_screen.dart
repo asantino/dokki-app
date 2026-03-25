@@ -12,7 +12,8 @@ class LanguageScreen extends ConsumerStatefulWidget {
 }
 
 class _LanguageScreenState extends ConsumerState<LanguageScreen> {
-  final List<String> _languages = ['Русский', 'English', 'العربية'];
+  // Порядок изменен: English, العربية, Русский
+  final List<String> _languages = ['English', 'العربية', 'Русский'];
 
   AppLanguage _languageByLabel(String label) {
     switch (label) {
