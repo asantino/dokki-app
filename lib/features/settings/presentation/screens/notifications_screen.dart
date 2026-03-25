@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/localization/language_provider.dart';
 
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   bool _pushEnabled = true;
   bool _emailEnabled = false;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final s = ref.watch(stringsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Уведомления'),
+        title: Text(s.setNotifications),
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: const BackButton(color: AppColors.textPrimary),
@@ -29,9 +32,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           SwitchListTile(
             activeThumbColor: AppColors.accent,
             tileColor: AppColors.surface,
-            title: Text('Push-уведомления', style: textTheme.bodyLarge),
+            title: Text(s.notifPush, style: textTheme.bodyLarge),
             subtitle: Text(
-              'Получать уведомления на устройство',
+              s.notifPushSub,
               style:
                   textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
@@ -42,9 +45,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           SwitchListTile(
             activeThumbColor: AppColors.accent,
             tileColor: AppColors.surface,
-            title: Text('Email-уведомления', style: textTheme.bodyLarge),
+            title: Text(s.notifEmail, style: textTheme.bodyLarge),
             subtitle: Text(
-              'Получать уведомления на почту',
+              s.notifEmailSub,
               style:
                   textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),

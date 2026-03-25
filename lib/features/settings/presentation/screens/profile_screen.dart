@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/providers/auth_providers.dart';
+import '../../../../core/localization/language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   final String currentEmail;
@@ -13,6 +15,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  late AppStrings _s;
+
   void _notify(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -31,9 +35,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context: context,
       builder: (c) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Сменить пароль',
+        title: Text(_s.profChangePass,
             style:
-                TextStyle(fontFamily: 'Inter', color: AppColors.textPrimary)),
+                const TextStyle(fontFamily: 'Inter', color: AppColors.textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -41,55 +45,55 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               controller: oldPasswordController,
               obscureText: true,
               style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                  labelText: 'Текущий пароль',
-                  labelStyle: TextStyle(color: AppColors.textSecondary)),
+              decoration: InputDecoration(
+                  labelText: _s.profCurrentPass,
+                  labelStyle: const TextStyle(color: AppColors.textSecondary)),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: newPasswordController,
               obscureText: true,
               style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                  labelText: 'Новый пароль',
-                  labelStyle: TextStyle(color: AppColors.textSecondary)),
+              decoration: InputDecoration(
+                  labelText: _s.profNewPass,
+                  labelStyle: const TextStyle(color: AppColors.textSecondary)),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: confirmPasswordController,
               obscureText: true,
               style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                  labelText: 'Повторите новый пароль',
-                  labelStyle: TextStyle(color: AppColors.textSecondary)),
+              decoration: InputDecoration(
+                  labelText: _s.profRepeatPass,
+                  labelStyle: const TextStyle(color: AppColors.textSecondary)),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c),
-            child: const Text('Отмена',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(_s.profCancel,
+                style: const TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
               if (newPasswordController.text !=
                   confirmPasswordController.text) {
-                _notify('Пароли не совпадают', isError: true);
+                _notify(_s.profPassMismatch, isError: true);
                 return;
               }
               if (newPasswordController.text.length < 6) {
-                _notify('Пароль должен быть минимум 6 символов', isError: true);
+                _notify(_s.profPassLength, isError: true);
                 return;
               }
 
               // TODO: Supabase.auth.updateUser(password: newPasswordController.text)
 
               Navigator.pop(c);
-              _notify('Пароль успешно изменён');
+              _notify(_s.profPassSuccess);
             },
-            child: const Text('Сохранить',
-                style: TextStyle(
+            child: Text(_s.profSave,
+                style: const TextStyle(
                     color: AppColors.accent, fontWeight: FontWeight.bold)),
           ),
         ],
@@ -99,12 +103,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(stringsProvider);
+    _s = s;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Профиль',
-          style: TextStyle(
+        title: Text(
+          s.profTitle,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
             fontFamily: 'Inter',
@@ -142,9 +149,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ListTile(
             tileColor: AppColors.surface,
             leading: const Icon(Icons.lock_outline, color: AppColors.accent),
-            title: const Text(
-              'Сменить пароль',
-              style: TextStyle(
+            title: Text(
+              s.profChangePass,
+              style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                   fontFamily: 'Inter'),
@@ -157,9 +164,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ListTile(
             tileColor: AppColors.surface,
             leading: const Icon(Icons.logout, color: AppColors.error),
-            title: const Text(
-              'Выйти из аккаунта',
-              style: TextStyle(
+            title: Text(
+              s.profLogout,
+              style: const TextStyle(
                   color: AppColors.error,
                   fontWeight: FontWeight.w600,
                   fontFamily: 'Inter'),
