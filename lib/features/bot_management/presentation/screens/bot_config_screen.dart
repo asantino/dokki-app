@@ -125,7 +125,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
             child: CircularProgressIndicator(color: AppColors.accent)),
         error: (err, stack) => Center(
             child: Text('Ошибка: $err',
-                style: const TextStyle(color: Colors.white))),
+                style: const TextStyle(color: AppColors.textPrimary))),
         data: (_) => SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -145,7 +145,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                 controller: _systemPromptController,
                 maxLines: 10,
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 15, height: 1.4),
+                    color: AppColors.textPrimary, fontSize: 15, height: 1.4),
                 decoration: _buildInputDecoration(
                     'Инструкции для ИИ: как он должен общаться, какие услуги предлагать...'),
                 enabled: !_isSaving,
@@ -164,7 +164,8 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               TextField(
                 controller: _welcomeMessageController,
                 maxLines: 3,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                style:
+                    const TextStyle(color: AppColors.textPrimary, fontSize: 15),
                 decoration: _buildInputDecoration(
                     'Текст, который бот напишет первым...'),
                 enabled: !_isSaving,

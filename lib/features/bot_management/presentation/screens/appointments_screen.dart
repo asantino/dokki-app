@@ -58,7 +58,7 @@ class AppointmentsScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16.0),
             child: Text('Ошибка загрузки: $err',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white)),
+                style: const TextStyle(color: AppColors.textPrimary)),
           ),
         ),
         data: (appointments) {
@@ -114,7 +114,7 @@ class AppointmentsScreen extends ConsumerWidget {
                             appointment['client_name']?.toString() ??
                                 'Клиент без имени',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),

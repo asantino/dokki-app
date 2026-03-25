@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   static const Color background = Color(0xFFF0F4FF);
@@ -25,33 +24,54 @@ class AppTheme {
           onSurface: AppColors.textPrimary,
         ),
         scaffoldBackgroundColor: AppColors.background,
-
-        fontFamily: GoogleFonts.nunito().fontFamily,
-
-        textTheme: GoogleFonts.nunitoTextTheme(
-          ThemeData.light().textTheme,
-        ).copyWith(
-          bodyLarge: GoogleFonts.nunito(color: AppColors.textPrimary),
-          bodyMedium: GoogleFonts.nunito(color: AppColors.textPrimary),
-          titleLarge: GoogleFonts.nunito(
+        fontFamily: 'Inter 18pt',
+        textTheme: const TextTheme(
+          titleLarge: TextStyle(
+            fontFamily: 'Inter 18pt',
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
+            letterSpacing: 0.3,
+          ),
+          titleMedium: TextStyle(
+            fontFamily: 'Inter 18pt',
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+            letterSpacing: 0.2,
+          ),
+          bodyLarge: TextStyle(
+            fontFamily: 'Inter 18pt',
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+          bodyMedium: TextStyle(
+            fontFamily: 'Inter 18pt',
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textPrimary,
+          ),
+          labelSmall: TextStyle(
+            fontFamily: 'Inter 18pt',
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+            letterSpacing: 1.2,
           ),
         ),
-
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.background,
           elevation: 0,
           centerTitle: true,
           iconTheme: IconThemeData(color: AppColors.textPrimary),
           titleTextStyle: TextStyle(
+            fontFamily: 'Inter 18pt',
             color: AppColors.textPrimary,
             fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
           ),
         ),
-
-        // ИСПРАВЛЕНО: Использование CardThemeData вместо CardTheme
         cardTheme: const CardThemeData(
           color: AppColors.card,
           elevation: 2,
@@ -61,7 +81,6 @@ class AppTheme {
             side: BorderSide(color: AppColors.border, width: 1),
           ),
         ),
-
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accent,
@@ -72,7 +91,8 @@ class AppTheme {
               borderRadius: BorderRadius.circular(12),
             ),
             textStyle: const TextStyle(
-              fontWeight: FontWeight.bold,
+              fontFamily: 'Inter 18pt',
+              fontWeight: FontWeight.w700,
               fontSize: 16,
             ),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_client.dart';
 import '../domain/auth_repository.dart';
 import '../data/auth_repository_impl.dart';
@@ -22,7 +23,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(supabase, secureStorage);
 });
 
-final authStateProvider = StreamProvider<bool>((ref) {
+final authStateProvider = StreamProvider<User?>((ref) {
   final repository = ref.watch(authRepositoryProvider);
   return repository.authStateChanges;
 });

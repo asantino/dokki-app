@@ -5,24 +5,39 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../navigation/main_screen.dart';
 import '../../features/bot_management/presentation/screens/connect_bot_screen.dart';
-import '../../features/bot_management/presentation/screens/bot_management_screen.dart';
-import '../../features/bot_management/domain/business.dart';
 import '../supabase/supabase_client.dart';
-// Добавленные импорты для нового роута
 import '../../features/catalog/presentation/screens/bot_detail_screen.dart';
 import '../../features/catalog/domain/bot.dart';
+import '../../features/payment/presentation/screens/payment_screen.dart';
+import '../../features/settings/presentation/screens/profile_screen.dart';
+import '../../features/settings/presentation/screens/language_screen.dart';
+import '../../features/settings/presentation/screens/notifications_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
   final notifier = _AuthNotifier(supabase);
+
   return GoRouter(
     initialLocation: '/',
     refreshListenable: notifier,
     redirect: (context, state) {
       final isLoggedIn = supabase.auth.currentSession != null;
-      final isAuthRoute = state.matchedLocation == '/auth';
-      if (!isLoggedIn && !isAuthRoute) return '/auth';
-      if (isLoggedIn && isAuthRoute) return '/';
+      final location = state.matchedLocation;
+
+      final isProtectedRoute = location.startsWith('/profile') ||
+          location.startsWith('/payment') ||
+          location.startsWith('/connect-bot');
+
+      final isAuthRoute = location == '/auth';
+
+      if (!isLoggedIn && isProtectedRoute) {
+        return '/auth';
+      }
+
+      if (isLoggedIn && isAuthRoute) {
+        return '/';
+      }
+
       return null;
     },
     routes: [
@@ -34,10 +49,37 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/auth',
         builder: (context, state) => const AuthScreen(),
       ),
-      // Новый роут для деталей бота
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) {
+          final email = state.extra as String? ?? '';
+          return ProfileScreen(currentEmail: email);
+        },
+      ),
+      GoRoute(
+        path: '/language',
+        builder: (context, state) => const LanguageScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
       GoRoute(
         path: '/bot-detail/:botId',
         builder: (context, state) => BotDetailScreen(bot: state.extra as Bot),
+      ),
+      GoRoute(
+        path: '/payment',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return PaymentScreen(
+            botId: extra['botId'] as String,
+            botName: extra['botName'] as String,
+            botDescription: extra['botDescription'] as String,
+            priceMonthly: extra['priceMonthly'] as double,
+            priceYearly: extra['priceYearly'] as double,
+          );
+        },
       ),
       GoRoute(
         path: '/connect-bot/:botId/:botName',
@@ -45,13 +87,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           botId: state.pathParameters['botId']!,
           botName: state.pathParameters['botName']!,
         ),
-      ),
-      GoRoute(
-        path: '/bot-management/:businessId',
-        builder: (context, state) {
-          final business = state.extra as Business;
-          return BotManagementScreen(business: business);
-        },
       ),
     ],
   );

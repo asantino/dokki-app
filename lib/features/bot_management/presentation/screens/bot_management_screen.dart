@@ -58,7 +58,7 @@ class BotManagementScreen extends ConsumerWidget {
                 icon: const Icon(Icons.format_list_bulleted_rounded, size: 20),
                 label: const Text('ЗАПИСИ'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.textPrimary,
                   side: const BorderSide(color: AppColors.border, width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -85,7 +85,7 @@ class BotManagementScreen extends ConsumerWidget {
                 icon: const Icon(Icons.settings_suggest_rounded, size: 20),
                 label: const Text('НАСТРОЙКИ ПРОМПТА'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.textPrimary,
                   side: const BorderSide(color: AppColors.border, width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -164,7 +164,7 @@ class BotManagementScreen extends ConsumerWidget {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),

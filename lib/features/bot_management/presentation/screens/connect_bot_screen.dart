@@ -232,7 +232,8 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
               '1. Откройте @BotFather.\n'
               '2. Сгенерируйте НОВЫЙ токен (Revoke), если старый был скомпрометирован.\n'
               '3. Вставьте новый токен в поле ниже.',
-              style: TextStyle(height: 1.6, color: Colors.white, fontSize: 14),
+              style: TextStyle(
+                  height: 1.6, color: AppColors.textPrimary, fontSize: 14),
             ),
           ),
           const SizedBox(height: 32),
@@ -248,7 +249,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _botTokenController,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
             decoration:
                 _buildInputDecoration('Bot API Token', Icons.vpn_key_rounded),
             enabled: !_isLoading,
@@ -313,7 +314,8 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
               '1. Войдите в аккаунт Railway.\n'
               '2. Создайте API Token в настройках профиля.\n'
               '3. Скопируйте ваш Workspace ID.',
-              style: TextStyle(height: 1.6, color: Colors.white, fontSize: 14),
+              style: TextStyle(
+                  height: 1.6, color: AppColors.textPrimary, fontSize: 14),
             ),
           ),
           const SizedBox(height: 32),
@@ -329,7 +331,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _railwayTokenController,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
             decoration: _buildInputDecoration(
                 'Railway Token', Icons.cloud_queue_rounded),
             enabled: !_isLoading,
@@ -348,7 +350,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _workspaceIdController,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
             decoration:
                 _buildInputDecoration('Workspace ID', Icons.grid_view_rounded),
             enabled: !_isLoading,

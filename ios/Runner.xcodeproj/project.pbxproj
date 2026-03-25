@@ -161,7 +161,6 @@
 				F4D5BCB96FE1974781CFB58C /* Pods-RunnerTests.release.xcconfig */,
 				A7E82FDABE81E8EBA5A0A4EB /* Pods-RunnerTests.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -654,7 +653,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = KNK8N6BVSY;
+				DEVELOPMENT_TEAM = VR284T6M3T;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

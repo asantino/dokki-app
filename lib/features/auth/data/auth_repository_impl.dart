@@ -41,9 +41,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Stream<bool> get authStateChanges {
+  Stream<User?> get authStateChanges {
     return _supabase.auth.onAuthStateChange.map(
-      (event) => event.session != null,
+      (event) => event.session?.user,
     );
   }
+
+  @override
+  User? get currentUser => _supabase.auth.currentUser;
 }

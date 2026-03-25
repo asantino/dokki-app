@@ -37,7 +37,7 @@ class BotCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Левый блок: Иллюстрация 160x160 с жесткой фиксацией сверху
+            // Левый блок
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
@@ -49,7 +49,6 @@ class BotCard extends StatelessWidget {
                 child: CachedNetworkImage(
                   imageUrl: bot.imageUrl ?? '',
                   fit: BoxFit.cover,
-                  // ИСПРАВЛЕНО: Центрируем по верху, чтобы роботы не "вылезали" снизу
                   alignment: Alignment.topCenter,
                   placeholder: (context, url) => Container(
                     color: AppColors.background,
@@ -65,7 +64,7 @@ class BotCard extends StatelessWidget {
               ),
             ),
 
-            // Правый блок: Контент
+            // Правый блок
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -82,10 +81,19 @@ class BotCard extends StatelessWidget {
                         fontSize: 17,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    if (bot.shortFeatures != null)
-                      _buildShortFeatures(bot.shortFeatures!),
                     const SizedBox(height: 4),
+
+                    // ДОБАВЛЕНО: Специализация бота
+                    Text(
+                      bot.category,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+
+                    const Spacer(),
+
                     Text(
                       '₽${bot.priceMonthly ?? 0}/мес',
                       style: const TextStyle(
@@ -95,6 +103,7 @@ class BotCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
+
                     SizedBox(
                       width: double.infinity,
                       height: 32,
@@ -125,35 +134,6 @@ class BotCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildShortFeatures(List<Map<String, dynamic>> shortFeatures) {
-    const iconMap = {
-      'calendar_month': Icons.calendar_month,
-      'notifications': Icons.notifications,
-      'cancel': Icons.cancel,
-      'support_agent': Icons.support_agent,
-      'trending_up': Icons.trending_up,
-      'handshake': Icons.handshake,
-    };
-
-    final visibleFeatures = shortFeatures.take(3).toList();
-
-    return Row(
-      children: visibleFeatures.map((feature) {
-        final iconName = feature['icon'] as String?;
-        final iconData = iconMap[iconName] ?? Icons.star_outline;
-
-        return Padding(
-          padding: const EdgeInsets.only(right: 8.0),
-          child: Icon(
-            iconData,
-            size: 22,
-            color: AppColors.accent,
-          ),
-        );
-      }).toList(),
     );
   }
 }
