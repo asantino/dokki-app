@@ -12,6 +12,8 @@ import '../../features/payment/presentation/screens/payment_screen.dart';
 import '../../features/settings/presentation/screens/profile_screen.dart';
 import '../../features/settings/presentation/screens/language_screen.dart';
 import '../../features/settings/presentation/screens/notifications_screen.dart';
+import '../../features/bot_management/presentation/screens/bot_management_screen.dart';
+import '../../features/bot_management/domain/business.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
@@ -26,7 +28,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isProtectedRoute = location.startsWith('/profile') ||
           location.startsWith('/payment') ||
-          location.startsWith('/connect-bot');
+          location.startsWith('/connect-bot') ||
+          location.startsWith('/bot-management');
 
       final isAuthRoute = location == '/auth';
 
@@ -86,6 +89,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ConnectBotScreen(
           botId: state.pathParameters['botId']!,
           botName: state.pathParameters['botName']!,
+        ),
+      ),
+      GoRoute(
+        path: '/bot-management/:botId',
+        builder: (context, state) => BotManagementScreen(
+          business: state.extra as Business,
         ),
       ),
     ],
