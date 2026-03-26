@@ -18,6 +18,8 @@ class Business {
   final String? botName;
   final String? botCategory;
   final String? specialization;
+  final String? tier;
+  final String? imageUrl;
 
   Business({
     required this.id,
@@ -35,6 +37,8 @@ class Business {
     this.botName,
     this.botCategory,
     this.specialization,
+    this.tier,
+    this.imageUrl,
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
@@ -61,6 +65,8 @@ class Business {
       botName: botData?['name'] as String?,
       botCategory: botData?['category'] as String?,
       specialization: botData?['specialization'] as String?,
+      tier: botData?['tier'] as String?,
+      imageUrl: botData?['image_url'] as String?,
     );
   }
 }

@@ -1,11 +1,13 @@
+import 'package:flutter/foundation.dart'; // Для kDebugMode и debugPrint
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Добавили для UserAttributes
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:go_router/go_router.dart'; // Для явного редиректа
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/providers/auth_providers.dart';
 import '../../../../core/localization/language_provider.dart';
 import '../../../../core/localization/app_strings.dart';
-import '../../../../core/supabase/supabase_client.dart'; // Импорт провайдера клиента
+import '../../../../core/supabase/supabase_client.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   final String currentEmail;
@@ -148,6 +150,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 40),
+          // Смена пароля
           ListTile(
             tileColor: AppColors.surface,
             leading: const Icon(Icons.lock_outline, color: AppColors.accent),
@@ -163,6 +166,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onTap: _showChangePasswordDialog,
           ),
           const Divider(color: AppColors.border, height: 1),
+          // Выход из аккаунта
           ListTile(
             tileColor: AppColors.surface,
             leading: const Icon(Icons.logout, color: AppColors.error),
@@ -176,7 +180,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             trailing:
                 const Icon(Icons.chevron_right, color: AppColors.textSecondary),
             onTap: () async {
+              if (kDebugMode) debugPrint('=== DEBUG: Signing out ===');
+
+              // 1. Вызываем логаут
               await ref.read(authRepositoryProvider).signOut();
+
+              if (kDebugMode) debugPrint('=== DEBUG: Sign out SUCCESS ===');
+
+              // 2. Явный редирект на экран входа
+              if (mounted) {
+                if (kDebugMode) debugPrint('→ Manual redirect to /auth');
+                context.go('/auth');
+              }
             },
           ),
           const Divider(color: AppColors.border, height: 1),

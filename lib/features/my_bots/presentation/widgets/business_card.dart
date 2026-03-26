@@ -19,13 +19,12 @@ class BusinessCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppStrings s = ref.watch(stringsProvider);
-    
-    final botImageName = business.botId.replaceAll('dokki-', 'bot_');
-    final imageUrl =
-        'https://cjjdkrsqrtfirywrmrxu.supabase.co/storage/v1/object/public/bot-images/$botImageName.png';
+
+    // Используем URL изображения напрямую из модели
+    final imageUrl = business.imageUrl ?? '';
 
     return SizedBox(
-      height: 160,
+      height: 170, // Увеличили высоту со 160 до 170
       width: double.infinity,
       child: Container(
         clipBehavior: Clip.hardEdge,
@@ -45,7 +44,7 @@ class BusinessCard extends ConsumerWidget {
           children: [
             SizedBox(
               width: 160,
-              height: 160,
+              height: 170, // Синхронизировали высоту блока изображения
               child: ClipRRect(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
@@ -81,8 +80,9 @@ class BusinessCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Название из bot_catalog
                     Text(
-                      _formatBotId(business.botId),
+                      business.botName ?? 'Робот',
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
@@ -94,15 +94,20 @@ class BusinessCard extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
+                    // Специализация (краткое описание) - ТЕПЕРЬ 2 СТРОКИ
                     Text(
-                      AppStrings.mapCategory(business.botId.replaceAll('dokki-', '')),
+                      business.specialization ?? '',
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,
                         fontFamily: 'Inter',
+                        height:
+                            1.2, // Улучшаем читаемость межстрочного интервала
                       ),
+                      maxLines: 2, // Разрешаем перенос на вторую строку
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2), // Уменьшили отступ с 4 до 2
                     _buildStatusRow(s),
                     const Spacer(),
                     SizedBox(
@@ -136,14 +141,6 @@ class BusinessCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  String _formatBotId(String botId) {
-    if (botId.isEmpty) return 'Робот';
-    return botId
-        .split('-')
-        .map((word) => word[0].toUpperCase() + word.substring(1))
-        .join(' ');
   }
 
   Widget _buildStatusRow(AppStrings s) {

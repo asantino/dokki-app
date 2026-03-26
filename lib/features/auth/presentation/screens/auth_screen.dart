@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart'; // Для kDebugMode и debugPrint
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/supabase/supabase_client.dart';
 import '../../../../core/localization/language_provider.dart';
@@ -34,9 +36,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     );
   }
 
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.accent),
+    );
+  }
+
   Future<void> _handleAuth() async {
+    if (kDebugMode) debugPrint('=== DEBUG AUTH START ===');
+
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+
+    if (kDebugMode) {
+      debugPrint('Email: $email | Mode: ${_isLoginMode ? "LOGIN" : "SIGNUP"}');
+    }
 
     if (email.isEmpty || password.isEmpty) {
       _showError(_s.authFieldsRequired);
@@ -44,26 +58,37 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
 
     setState(() => _isLoading = true);
+
     try {
+      if (kDebugMode) debugPrint('DEBUG: Calling Supabase auth...');
       final supabase = ref.read(supabaseClientProvider);
+
       if (_isLoginMode) {
+        if (kDebugMode) debugPrint('DEBUG: Attempting signInWithPassword...');
         await supabase.auth
             .signInWithPassword(email: email, password: password);
+
+        if (kDebugMode) debugPrint('DEBUG: Sign in SUCCESS');
+
+        if (mounted) {
+          if (kDebugMode) debugPrint('→ Manual redirect to /');
+          context.go('/');
+        }
       } else {
+        if (kDebugMode) debugPrint('DEBUG: Attempting signUp...');
         await supabase.auth.signUp(email: email, password: password);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(_s.authCheckEmail),
-                backgroundColor: AppColors.accent),
-          );
+          _showSuccess(_s.authCheckEmail);
         }
       }
     } on AuthException catch (e) {
+      if (kDebugMode) debugPrint('DEBUG AuthException: ${e.message}');
       _showError(e.message);
     } catch (e) {
+      if (kDebugMode) debugPrint('DEBUG General error: $e');
       _showError('${_s.authError}: $e');
     } finally {
+      if (kDebugMode) debugPrint('=== DEBUG AUTH END ===');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -109,19 +134,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const SizedBox(height: 48),
               _buildLabel('Email'),
               const SizedBox(height: 8),
+              // ФИКС: Переход к следующему полю по Enter
               _buildTextField(
                 _emailController,
                 hint: 'example@mail.com',
                 prefixIcon: const Icon(Icons.email_outlined,
                     color: AppColors.textSecondary),
+                textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 20),
               _buildLabel(s.authPassword),
               const SizedBox(height: 8),
+              // ФИКС: Запуск авторизации по Enter
               _buildTextField(
                 _passwordController,
                 obscureText: _obscurePassword,
                 hint: '••••••••',
+                textInputAction: TextInputAction.done,
+                onSubmitted: _handleAuth,
                 prefixIcon: const Icon(Icons.lock_outline,
                     color: AppColors.textSecondary),
                 suffixIcon: IconButton(
@@ -189,39 +219,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   const Expanded(child: Divider(color: AppColors.border)),
                 ]),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    icon: Image.network('https://www.google.com/favicon.ico',
-                        height: 20),
-                    label: Text(s.authGoogle,
-                        style: const TextStyle(
-                            color: AppColors.textPrimary, fontFamily: 'Inter')),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () {},
-                  ),
+                _buildSocialButton(
+                  icon: Image.network('https://www.google.com/favicon.ico',
+                      height: 20),
+                  label: s.authGoogle,
+                  onPressed: () {},
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.apple, color: AppColors.textPrimary),
-                    label: const Text('Sign in with Apple',
-                        style: TextStyle(
-                            color: AppColors.textPrimary, fontFamily: 'Inter')),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () {},
-                  ),
+                _buildSocialButton(
+                  icon: const Icon(Icons.apple, color: AppColors.textPrimary),
+                  label: 'Sign in with Apple',
+                  onPressed: () {},
                 ),
               ],
               const SizedBox(height: 24),
@@ -230,10 +238,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: Text(
                   _isLoginMode ? s.authNoAccount : s.authHasAccount,
                   style: const TextStyle(
-                    color: AppColors.accent,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Inter',
-                  ),
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter'),
                 ),
               ),
               const SizedBox(height: 20),
@@ -255,14 +262,42 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller,
-      {bool obscureText = false,
-      String? hint,
-      Widget? suffixIcon,
-      Widget? prefixIcon}) {
+  Widget _buildSocialButton(
+      {required Widget icon,
+      required String label,
+      required VoidCallback onPressed}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton.icon(
+        icon: icon,
+        label: Text(label,
+            style: const TextStyle(
+                color: AppColors.textPrimary, fontFamily: 'Inter')),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppColors.border),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onPressed: onPressed,
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller, {
+    bool obscureText = false,
+    String? hint,
+    Widget? suffixIcon,
+    Widget? prefixIcon,
+    TextInputAction? textInputAction,
+    VoidCallback? onSubmitted,
+  }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted != null ? (_) => onSubmitted() : null,
       style: const TextStyle(color: AppColors.textPrimary, fontFamily: 'Inter'),
       decoration: InputDecoration(
         hintText: hint,
