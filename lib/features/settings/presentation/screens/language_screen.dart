@@ -62,7 +62,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                 : null,
             onTap: () {
               final selected = _languageByLabel(language);
-              ref.read(languageProvider.notifier).state = selected;
+              ref.read(languageProvider.notifier).setLanguage(selected);
               Navigator.pop(context, language);
             },
           );

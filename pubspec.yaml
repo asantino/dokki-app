@@ -8,6 +8,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations: # Добавлено для RTL и системных переводов
+    sdk: flutter
   cupertino_icons: ^1.0.2
   flutter_riverpod: ^2.5.1
   riverpod_annotation: ^2.3.5
@@ -17,6 +19,7 @@ dependencies:
   envied: ^0.5.0
   http: ^1.2.0
   cached_network_image: ^3.4.1
+  shared_preferences: ^2.2.2
   google_fonts: ^6.2.1
   font_awesome_flutter: ^11.0.0
 

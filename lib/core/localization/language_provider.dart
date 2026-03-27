@@ -1,14 +1,67 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app_strings.dart';
 
-// Провайдер текущего языка
-final languageProvider = StateProvider<AppLanguage>((ref) => AppLanguage.ru);
+/// Провайдер для доступа к SharedPreferences.
+/// Должен быть переопределен в main.dart через overrideWithValue.
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('SharedPreferences must be overridden in main.dart');
+});
 
-// Провайдер строк — зависит от languageProvider
+/// Провайдер для управления текущим языком приложения (Enum)
+final languageProvider =
+    StateNotifierProvider<LanguageNotifier, AppLanguage>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return LanguageNotifier(prefs);
+});
+
+/// Нотификатор, обеспечивающий синхронную загрузку и сохранение языка
+class LanguageNotifier extends StateNotifier<AppLanguage> {
+  static const String _key = 'app_language';
+  final SharedPreferences _prefs;
+
+  LanguageNotifier(this._prefs) : super(AppLanguage.en) {
+    _loadLanguage();
+  }
+
+  /// Синхронная загрузка из уже инициализированного экземпляра SharedPreferences
+  void _loadLanguage() {
+    final savedLanguage = _prefs.getString(_key);
+
+    if (savedLanguage != null) {
+      try {
+        state = AppLanguage.values.firstWhere(
+          (e) => e.toString() == savedLanguage,
+          orElse: () => AppLanguage.en,
+        );
+        print('Loaded language from storage: $state');
+      } catch (e) {
+        print('Error parsing language from storage: $e');
+      }
+    }
+  }
+
+  /// Смена языка с немедленным сохранением в память устройства
+  Future<void> setLanguage(AppLanguage language) async {
+    if (state == language) return;
+
+    state = language;
+
+    try {
+      await _prefs.setString(_key, language.toString());
+      print('Saved language to storage: $language');
+    } catch (e) {
+      print('Error saving language to storage: $e');
+    }
+  }
+}
+
+/// Провайдер строк локализации — главный источник текстов для UI.
+/// Автоматически пересоздается при изменении languageProvider.
 final stringsProvider = Provider<AppStrings>((ref) {
   final language = ref.watch(languageProvider);
 
-  // КРИТИЧЕСКИ ВАЖНО: Обновляем статический контекст для моделей (Bot и т.д.)
+  // Обновляем статический контекст для моделей, работающих вне Riverpod
   AppStrings.currentLanguage = language;
 
   return AppStrings(language);
