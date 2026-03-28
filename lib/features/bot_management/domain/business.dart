@@ -13,6 +13,7 @@ class Business {
   // Поля деплоя
   final String? clientRailwayToken;
   final String? clientRailwayWorkspaceId;
+  final String? railwayUrl;
 
   // Данные из JOIN (bot_catalog)
   final String? botName;
@@ -34,6 +35,7 @@ class Business {
     this.createdAt,
     this.clientRailwayToken,
     this.clientRailwayWorkspaceId,
+    this.railwayUrl,
     this.botName,
     this.botCategory,
     this.specialization,
@@ -60,6 +62,7 @@ class Business {
           : null,
       clientRailwayToken: json['client_railway_token'] as String?,
       clientRailwayWorkspaceId: json['client_railway_workspace_id'] as String?,
+      railwayUrl: json['railway_url'] as String?,
 
       // Маппинг данных из bot_catalog
       botName: botData?['name'] as String?,
@@ -67,6 +70,49 @@ class Business {
       specialization: botData?['specialization'] as String?,
       tier: botData?['tier'] as String?,
       imageUrl: botData?['image_url'] as String?,
+    );
+  }
+
+  Business copyWith({
+    String? id,
+    String? userId,
+    String? botId,
+    String? botToken,
+    String? status,
+    String? telegramGroupId,
+    String? botSupabaseUrl,
+    String? botSupabaseAnonKey,
+    String? botBusinessId,
+    DateTime? createdAt,
+    String? clientRailwayToken,
+    String? clientRailwayWorkspaceId,
+    String? railwayUrl,
+    String? botName,
+    String? botCategory,
+    String? specialization,
+    String? tier,
+    String? imageUrl,
+  }) {
+    return Business(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      botId: botId ?? this.botId,
+      botToken: botToken ?? this.botToken,
+      status: status ?? this.status,
+      telegramGroupId: telegramGroupId ?? this.telegramGroupId,
+      botSupabaseUrl: botSupabaseUrl ?? this.botSupabaseUrl,
+      botSupabaseAnonKey: botSupabaseAnonKey ?? this.botSupabaseAnonKey,
+      botBusinessId: botBusinessId ?? this.botBusinessId,
+      createdAt: createdAt ?? this.createdAt,
+      clientRailwayToken: clientRailwayToken ?? this.clientRailwayToken,
+      clientRailwayWorkspaceId:
+          clientRailwayWorkspaceId ?? this.clientRailwayWorkspaceId,
+      railwayUrl: railwayUrl ?? this.railwayUrl,
+      botName: botName ?? this.botName,
+      botCategory: botCategory ?? this.botCategory,
+      specialization: specialization ?? this.specialization,
+      tier: tier ?? this.tier,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }

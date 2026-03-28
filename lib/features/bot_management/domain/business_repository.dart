@@ -9,4 +9,7 @@ abstract class BusinessRepository {
   });
   Future<List<Business>> getConnectedBots();
   Future<Business?> getBusinessById(String id);
+
+  // Новый метод для обновления URL
+  Future<void> updateRailwayUrl(String businessId, String railwayUrl);
 }

@@ -44,8 +44,14 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
     super.dispose();
   }
 
+  // Внутренний хелпер для глубокой очистки токенов
+  String _sanitize(String value) {
+    return value.trim().replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '');
+  }
+
   Future<void> _validateTelegramAndProceed() async {
-    final token = _botTokenController.text.trim();
+    final token = _sanitize(_botTokenController.text);
+
     if (token.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_s.connErrorNoToken)),
@@ -66,7 +72,8 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${_s.authError}: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text(
+                '${_s.authError}: ${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -77,7 +84,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
   }
 
   Future<void> _connect() async {
-    final botToken = _botTokenController.text.trim();
+    final botToken = _sanitize(_botTokenController.text);
     final railwayToken = _railwayTokenController.text.trim();
     final workspaceId = _workspaceIdController.text.trim();
 
@@ -91,6 +98,7 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // 1. Создать запись в Supabase
       final result = await ref.read(businessRepositoryProvider).connectBot(
             botId: widget.botId,
             botToken: botToken,
@@ -98,20 +106,57 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
             railwayWorkspaceId: workspaceId,
           );
 
+      // 2. Получить данные бота из каталога
       final bot = await ref.read(botByIdProvider(widget.botId).future);
 
-      await http.post(
+      // --- ВАЛИДАЦИЯ GITHUB REPO ---
+      if (bot == null) {
+        throw Exception('Данные бота не найдены');
+      }
+
+      final githubRepo = bot.githubRepo;
+      if (githubRepo == null || githubRepo.isEmpty) {
+        throw Exception('GitHub репозиторий не настроен для этого бота');
+      }
+
+      debugPrint('🔵 Bot loaded: ${bot.name}');
+      debugPrint('🔵 GitHub repo: $githubRepo');
+      // ------------------------------
+
+      // 3. Отправить на deploy-service и ДОЖДАТЬСЯ ответа
+      final deployResponse = await http.post(
         Uri.parse('${Env.deployServiceUrl}/deploy'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'businessId': result.id,
           'botId': widget.botId,
           'botToken': botToken,
-          'githubRepo': bot?.githubRepo,
+          'githubRepo': githubRepo, // Используем проверенную переменную
           'railwayToken': railwayToken,
           'railwayWorkspaceId': workspaceId,
         }),
       );
+
+      // 4. Проверить ответ сервера деплоя
+      if (deployResponse.statusCode != 200) {
+        throw Exception('Deploy failed: ${deployResponse.body}');
+      }
+
+      // 5. Получить railwayUrl из ответа
+      final deployData = jsonDecode(deployResponse.body);
+      final railwayUrl = deployData['railwayUrl'] ?? deployData['railway_url'];
+
+      if (railwayUrl == null || railwayUrl.isEmpty) {
+        throw Exception('Railway URL not received');
+      }
+
+      // 6. Сохранить railwayUrl в Supabase
+      await ref
+          .read(businessRepositoryProvider)
+          .updateRailwayUrl(result.id, railwayUrl);
+
+      // 7. Обновить локальный объект через copyWith
+      final updatedResult = result.copyWith(railwayUrl: railwayUrl);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -121,16 +166,18 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
           ),
         );
 
+        // 8. Передать обновлённый объект на следующий экран настройки
         context.pushReplacement(
-          '/bot-management/${result.id}',
-          extra: result,
+          '/bot-setup/${result.id}',
+          extra: updatedResult,
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${_s.authError}: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text(
+                '${_s.authError}: ${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -244,6 +291,9 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
                 _buildInputDecoration('Bot API Token', Icons.vpn_key_rounded),
             enabled: !_isLoading,
             autocorrect: false,
+            enableInteractiveSelection: true,
+            keyboardType: TextInputType.text,
+            enableSuggestions: false,
           ),
           const SizedBox(height: 40),
           SizedBox(
@@ -324,6 +374,9 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
                 'Railway Token', Icons.cloud_queue_rounded),
             enabled: !_isLoading,
             autocorrect: false,
+            enableInteractiveSelection: true,
+            keyboardType: TextInputType.text,
+            enableSuggestions: false,
           ),
           const SizedBox(height: 24),
           Text(
@@ -343,6 +396,9 @@ class _ConnectBotScreenState extends ConsumerState<ConnectBotScreen> {
                 _buildInputDecoration('Workspace ID', Icons.grid_view_rounded),
             enabled: !_isLoading,
             autocorrect: false,
+            enableInteractiveSelection: true,
+            keyboardType: TextInputType.text,
+            enableSuggestions: false,
           ),
           const SizedBox(height: 40),
           SizedBox(

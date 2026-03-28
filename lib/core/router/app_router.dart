@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart'; // Оставляем этот, он включает всё необходимое для этого файла
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,12 +13,12 @@ import '../../features/settings/presentation/screens/language_screen.dart';
 import '../../features/settings/presentation/screens/notifications_screen.dart';
 import '../../features/bot_management/presentation/screens/bot_management_screen.dart';
 import '../../features/bot_management/presentation/screens/connect_bot_screen.dart';
+import '../../features/bot_management/presentation/screens/bot_config_screen.dart'; // Новый импорт
 import '../../features/bot_management/domain/business.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
 
-  // Исправлено с authListenber на authListener
   final authListener = _AuthNotifier(supabase);
 
   return GoRouter(
@@ -29,10 +29,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = session != null;
       final location = state.matchedLocation;
 
-      // Защищенные маршруты
+      // Защищенные маршруты (добавлен /bot-setup)
       final isProtectedRoute = location.startsWith('/profile') ||
           location.startsWith('/payment') ||
           location.startsWith('/connect-bot') ||
+          location.startsWith('/bot-setup') ||
           location.startsWith('/bot-management');
 
       final isAuthRoute = location == '/auth';
@@ -106,6 +107,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           botName: state.pathParameters['botName']!,
         ),
       ),
+      // НОВЫЙ РОУТ: Экран первичной настройки AI (OpenAI Key, Prompt и т.д.)
+      GoRoute(
+        path: '/bot-setup/:botId',
+        builder: (context, state) => BotConfigScreen(
+          business: state.extra as Business,
+        ),
+      ),
       GoRoute(
         path: '/bot-management/:botId',
         builder: (context, state) => BotManagementScreen(
@@ -116,7 +124,6 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Класс, который трансформирует события Supabase в уведомления для GoRouter
 class _AuthNotifier extends ChangeNotifier {
   _AuthNotifier(SupabaseClient supabase) {
     supabase.auth.onAuthStateChange.listen((data) {

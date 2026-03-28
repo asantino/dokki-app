@@ -8,14 +8,48 @@ class BusinessRepositoryImpl implements BusinessRepository {
   BusinessRepositoryImpl(this._client);
 
   @override
+  Future<Business> connectBot({
+    required String botId,
+    required String botToken,
+    required String railwayToken,
+    required String railwayWorkspaceId,
+  }) async {
+    final userId = _client.auth.currentUser!.id;
+
+    print('🔵 Connecting bot: userId=$userId, botId=$botId');
+
+    try {
+      final response = await _client
+          .from('businesses')
+          .upsert(
+            {
+              'user_id': userId,
+              'bot_id': botId,
+              'bot_token': botToken,
+              'client_railway_token': railwayToken,
+              'client_railway_workspace_id': railwayWorkspaceId,
+              'status': 'pending',
+            },
+            onConflict: 'user_id,bot_id',
+          )
+          .select('*, bot_catalog(*)')
+          .single();
+
+      print('🔵 Upsert successful');
+      return Business.fromJson(response);
+    } catch (e) {
+      print('🔴 Upsert failed: $e');
+      rethrow;
+    }
+  }
+
+  @override
   Future<List<Business>> getConnectedBots() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw Exception('Пользователь не авторизован');
+    final userId = _client.auth.currentUser!.id;
 
     final response = await _client
         .from('businesses')
-        .select(
-            '*, bot_catalog(name, category, specialization, tier, image_url)')
+        .select('*, bot_catalog(*)')
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
@@ -23,37 +57,24 @@ class BusinessRepositoryImpl implements BusinessRepository {
   }
 
   @override
-  Future<Business> connectBot({
-    required String botId,
-    required String botToken,
-    required String railwayToken,
-    required String railwayWorkspaceId,
-  }) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw Exception('Пользователь не авторизован');
+  Future<Business?> getBusinessById(String id) async {
+    try {
+      final response = await _client
+          .from('businesses')
+          .select('*, bot_catalog(*)')
+          .eq('id', id)
+          .single();
 
-    final response = await _client
-        .from('businesses')
-        .insert({
-          'user_id': userId,
-          'bot_id': botId,
-          'bot_token': botToken,
-          'client_railway_token': railwayToken,
-          'client_railway_workspace_id': railwayWorkspaceId,
-          'status': 'pending',
-        })
-        .select()
-        .single();
-
-    return Business.fromJson(response);
+      return Business.fromJson(response);
+    } catch (e) {
+      return null;
+    }
   }
 
   @override
-  Future<Business?> getBusinessById(String id) async {
-    final response =
-        await _client.from('businesses').select().eq('id', id).maybeSingle();
-
-    if (response == null) return null;
-    return Business.fromJson(response);
+  Future<void> updateRailwayUrl(String businessId, String railwayUrl) async {
+    await _client
+        .from('businesses')
+        .update({'railway_url': railwayUrl}).eq('id', businessId);
   }
 }

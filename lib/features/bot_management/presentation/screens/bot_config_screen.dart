@@ -1,89 +1,149 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart'; // Импорт темы
+import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/business.dart';
-import '../../providers/bot_management_providers.dart';
 
 class BotConfigScreen extends ConsumerStatefulWidget {
   final Business business;
 
-  const BotConfigScreen({
-    super.key,
-    required this.business,
-  });
+  const BotConfigScreen({super.key, required this.business});
 
   @override
   ConsumerState<BotConfigScreen> createState() => _BotConfigScreenState();
 }
 
 class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
-  final _systemPromptController = TextEditingController();
-  final _welcomeMessageController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
-  bool _isInitialized = false;
-  bool _isSaving = false;
+  final _usernameController = TextEditingController();
+  final _apiKeyController = TextEditingController();
+  final _businessNameController = TextEditingController();
+  final _welcomeController = TextEditingController();
+  final _promptController = TextEditingController();
+
+  String? _usernameError;
+  String? _apiKeyError;
+  String? _businessNameError;
+
+  bool _isLoading = false;
+  bool _obscureApiKey = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Используем botName из твоей модели
+    _businessNameController.text = widget.business.botName ?? "";
+
+    _welcomeController.text =
+        'Здравствуйте! Вас приветствует ${widget.business.botName ?? "наша компания"}. Чем могу помочь?';
+
+    _promptController.text =
+        '''Ты — консультант компании ${widget.business.botName ?? "Dokki Business"}.
+
+Твоя задача:
+- Помогать клиентам с выбором услуг/товаров
+- Отвечать на вопросы о ценах
+- Передавать сложные вопросы менеджеру
+
+Стиль: дружелюбный, профессиональный.''';
+  }
 
   @override
   void dispose() {
-    _systemPromptController.dispose();
-    _welcomeMessageController.dispose();
+    _usernameController.dispose();
+    _apiKeyController.dispose();
+    _businessNameController.dispose();
+    _welcomeController.dispose();
+    _promptController.dispose();
     super.dispose();
   }
 
-  // ЛОГИКА ОСТАВЛЕНА БЕЗ ИЗМЕНЕНИЙ
   Future<void> _saveConfig() async {
-    setState(() => _isSaving = true);
+    setState(() {
+      _usernameError = null;
+      _apiKeyError = null;
+      _businessNameError = null;
+    });
+
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
     try {
-      final repo = ref.read(botConfigRepositoryProvider(widget.business));
-      final businessId = widget.business.botBusinessId ?? widget.business.id;
+      // ПРОВЕРЬ: Если в модели появится railwayUrl, замени botSupabaseUrl на него
+      final baseUrl = widget.business.botSupabaseUrl ?? "";
+      final url = Uri.parse('$baseUrl/api/config');
 
-      await repo.updateSystemPrompt(
-        businessId,
-        _systemPromptController.text.trim(),
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'telegram_username': _usernameController.text.trim(),
+          'openai_key': _apiKeyController.text.trim(),
+          'business_name': _businessNameController.text.trim(),
+          'welcome_message': _welcomeController.text.trim(),
+          'system_prompt': _promptController.text.trim(),
+        }),
       );
-      await repo.updateWelcomeMessage(
-        businessId,
-        _welcomeMessageController.text.trim(),
-      );
 
-      ref.invalidate(botConfigProvider(widget.business));
+      final data = jsonDecode(response.body);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Настройки сохранены'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      if (response.statusCode == 200 && data['success'] == true) {
+        if (mounted) {
+          context.pushReplacement(
+            '/bot-management/${widget.business.id}',
+            extra: widget.business,
+          );
+        }
+      } else {
+        final errorMessage = data['error'] ?? 'Ошибка сохранения';
+        final errorField = data['field'];
+
+        setState(() {
+          if (errorField == 'telegram_username') {
+            _usernameError = errorMessage;
+          } else if (errorField == 'openai_key') {
+            _apiKeyError = errorMessage;
+          } else if (errorField == 'business_name') {
+            _businessNameError = errorMessage;
+          }
+        });
+
+        throw Exception(errorMessage);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка: $e'),
-            backgroundColor: Colors.red,
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppColors.error,
           ),
         );
       }
     } finally {
       if (mounted) {
-        setState(() => _isSaving = false);
+        setState(() => _isLoading = false);
       }
     }
   }
 
-  // Хелпер для InputDecoration (как в ConnectBotScreen)
-  InputDecoration _buildInputDecoration(String hint) {
+  InputDecoration _buildDecor(String label, String hint, {Widget? suffix}) {
     return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
       hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.textSecondary),
+      hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
       filled: true,
       fillColor: AppColors.card,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      suffixIcon: suffix,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
+          borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.border, width: 1),
@@ -92,111 +152,126 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.accent, width: 2),
       ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.error, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.error, width: 2),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Инициализация контроллеров оставлена без изменений
-    ref.listen<AsyncValue<Map<String, dynamic>?>>(
-      botConfigProvider(widget.business),
-      (previous, next) {
-        if (next is AsyncData && !_isInitialized) {
-          final data = next.value;
-          if (data != null) {
-            _systemPromptController.text = data['system_prompt'] ?? '';
-            _welcomeMessageController.text = data['welcome_message'] ?? '';
-          }
-          _isInitialized = true;
-        }
-      },
-    );
-
-    final configAsync = ref.watch(botConfigProvider(widget.business));
-
     return Scaffold(
-      backgroundColor: AppColors.background, // Тёмный фон
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Настройки ИИ'),
+        title: const Text('Настройка ИИ'),
         centerTitle: false,
       ),
-      body: configAsync.when(
-        loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.accent)),
-        error: (err, stack) => Center(
-            child: Text('Ошибка: $err',
-                style: const TextStyle(color: AppColors.textPrimary))),
-        data: (_) => SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'СИСТЕМНЫЙ ПРОМПТ',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  letterSpacing: 1.2,
+              TextFormField(
+                controller: _usernameController,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration:
+                    _buildDecor('Telegram Bot Username', '@my_sales_bot')
+                        .copyWith(
+                  errorText: _usernameError,
                 ),
+                onChanged: (v) {
+                  if (_usernameError != null) {
+                    setState(() => _usernameError = null);
+                  }
+                },
+                validator: (v) => (v == null || !v.startsWith('@'))
+                    ? 'Должен начинаться с @'
+                    : null,
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _systemPromptController,
-                maxLines: 10,
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 15, height: 1.4),
-                decoration: _buildInputDecoration(
-                    'Инструкции для ИИ: как он должен общаться, какие услуги предлагать...'),
-                enabled: !_isSaving,
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _apiKeyController,
+                obscureText: _obscureApiKey,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: _buildDecor(
+                  'OpenAI API Key',
+                  'sk-proj-...',
+                  suffix: IconButton(
+                    icon: Icon(
+                        _obscureApiKey
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: AppColors.textSecondary),
+                    onPressed: () =>
+                        setState(() => _obscureApiKey = !_obscureApiKey),
+                  ),
+                ).copyWith(errorText: _apiKeyError),
+                onChanged: (v) {
+                  if (_apiKeyError != null) {
+                    setState(() => _apiKeyError = null);
+                  }
+                },
+                validator: (v) => (v == null || !v.startsWith('sk-'))
+                    ? 'Некорректный ключ OpenAI'
+                    : null,
               ),
-              const SizedBox(height: 32),
-              const Text(
-                'ПРИВЕТСТВИЕ',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  letterSpacing: 1.2,
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _businessNameController,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration:
+                    _buildDecor('Название компании', 'Моя компания').copyWith(
+                  errorText: _businessNameError,
                 ),
+                onChanged: (v) {
+                  if (_businessNameError != null) {
+                    setState(() => _businessNameError = null);
+                  }
+                },
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Введите название' : null,
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _welcomeMessageController,
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _welcomeController,
                 maxLines: 3,
-                style:
-                    const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-                decoration: _buildInputDecoration(
-                    'Текст, который бот напишет первым...'),
-                enabled: !_isSaving,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: _buildDecor(
+                    'Приветственное сообщение', 'Введите текст приветствия...'),
               ),
-              const SizedBox(height: 48),
-
-              // Акцентная кнопка сохранения
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _promptController,
+                maxLines: 10,
+                style:
+                    const TextStyle(color: AppColors.textPrimary, height: 1.4),
+                decoration:
+                    _buildDecor('Системный промпт', 'Инструкции для ИИ...'),
+              ),
+              const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isSaving ? null : _saveConfig,
+                  onPressed: _isLoading ? null : _saveConfig,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
-                        )
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
-                          'СОХРАНИТЬ ИЗМЕНЕНИЯ',
+                          'СОХРАНИТЬ И ПРОДОЛЖИТЬ',
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, letterSpacing: 1),
+                              fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                 ),
               ),
