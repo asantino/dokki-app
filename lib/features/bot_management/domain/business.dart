@@ -5,19 +5,20 @@ class Business {
   final String botToken;
   final String status;
   final String? telegramGroupId;
-  final String? botSupabaseUrl;
-  final String? botSupabaseAnonKey;
   final String? botBusinessId;
   final DateTime? createdAt;
 
-  // Поля деплоя
-  final String? clientRailwayToken;
-  final String? clientRailwayWorkspaceId;
-  final String? railwayUrl;
+  // Основные данные бота
+  final String botName;
+  final String botCategory;
+  final String telegramUsername;
+  final String businessName;
 
-  // Данные из JOIN (bot_catalog)
-  final String? botName;
-  final String? botCategory;
+  // Опциональные поля для будущего
+  final String? telegramToken;
+  final String? openaiKey;
+
+  // Данные из каталога (для отображения)
   final String? specialization;
   final String? tier;
   final String? imageUrl;
@@ -29,15 +30,14 @@ class Business {
     required this.botToken,
     required this.status,
     this.telegramGroupId,
-    this.botSupabaseUrl,
-    this.botSupabaseAnonKey,
     this.botBusinessId,
     this.createdAt,
-    this.clientRailwayToken,
-    this.clientRailwayWorkspaceId,
-    this.railwayUrl,
-    this.botName,
-    this.botCategory,
+    required this.botName,
+    required this.botCategory,
+    required this.telegramUsername,
+    required this.businessName,
+    this.telegramToken,
+    this.openaiKey,
     this.specialization,
     this.tier,
     this.imageUrl,
@@ -54,19 +54,17 @@ class Business {
       botToken: json['bot_token'] as String,
       status: json['status'] as String,
       telegramGroupId: json['telegram_group_id'] as String?,
-      botSupabaseUrl: json['bot_supabase_url'] as String?,
-      botSupabaseAnonKey: json['bot_supabase_anon_key'] as String?,
       botBusinessId: json['bot_business_id'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
-      clientRailwayToken: json['client_railway_token'] as String?,
-      clientRailwayWorkspaceId: json['client_railway_workspace_id'] as String?,
-      railwayUrl: json['railway_url'] as String?,
-
-      // Маппинг данных из bot_catalog
-      botName: botData?['name'] as String?,
-      botCategory: botData?['category'] as String?,
+      botName: (botData?['name'] ?? json['bot_name'] ?? '') as String,
+      botCategory:
+          (botData?['category'] ?? json['bot_category'] ?? '') as String,
+      telegramUsername: json['telegram_username'] as String? ?? '',
+      businessName: json['business_name'] as String? ?? '',
+      telegramToken: json['telegram_token'] as String?,
+      openaiKey: json['openai_key'] as String?,
       specialization: botData?['specialization'] as String?,
       tier: botData?['tier'] as String?,
       imageUrl: botData?['image_url'] as String?,
@@ -80,15 +78,14 @@ class Business {
     String? botToken,
     String? status,
     String? telegramGroupId,
-    String? botSupabaseUrl,
-    String? botSupabaseAnonKey,
     String? botBusinessId,
     DateTime? createdAt,
-    String? clientRailwayToken,
-    String? clientRailwayWorkspaceId,
-    String? railwayUrl,
     String? botName,
     String? botCategory,
+    String? telegramUsername,
+    String? businessName,
+    String? telegramToken,
+    String? openaiKey,
     String? specialization,
     String? tier,
     String? imageUrl,
@@ -100,16 +97,14 @@ class Business {
       botToken: botToken ?? this.botToken,
       status: status ?? this.status,
       telegramGroupId: telegramGroupId ?? this.telegramGroupId,
-      botSupabaseUrl: botSupabaseUrl ?? this.botSupabaseUrl,
-      botSupabaseAnonKey: botSupabaseAnonKey ?? this.botSupabaseAnonKey,
       botBusinessId: botBusinessId ?? this.botBusinessId,
       createdAt: createdAt ?? this.createdAt,
-      clientRailwayToken: clientRailwayToken ?? this.clientRailwayToken,
-      clientRailwayWorkspaceId:
-          clientRailwayWorkspaceId ?? this.clientRailwayWorkspaceId,
-      railwayUrl: railwayUrl ?? this.railwayUrl,
       botName: botName ?? this.botName,
       botCategory: botCategory ?? this.botCategory,
+      telegramUsername: telegramUsername ?? this.telegramUsername,
+      businessName: businessName ?? this.businessName,
+      telegramToken: telegramToken ?? this.telegramToken,
+      openaiKey: openaiKey ?? this.openaiKey,
       specialization: specialization ?? this.specialization,
       tier: tier ?? this.tier,
       imageUrl: imageUrl ?? this.imageUrl,

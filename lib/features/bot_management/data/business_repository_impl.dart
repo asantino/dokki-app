@@ -11,12 +11,13 @@ class BusinessRepositoryImpl implements BusinessRepository {
   Future<Business> connectBot({
     required String botId,
     required String botToken,
-    required String railwayToken,
-    required String railwayWorkspaceId,
+    required String botName,
+    required String botCategory,
+    required String telegramUsername,
+    required String businessName,
+    String? openaiKey,
   }) async {
     final userId = _client.auth.currentUser!.id;
-
-    print('🔵 Connecting bot: userId=$userId, botId=$botId');
 
     try {
       final response = await _client
@@ -26,19 +27,20 @@ class BusinessRepositoryImpl implements BusinessRepository {
               'user_id': userId,
               'bot_id': botId,
               'bot_token': botToken,
-              'client_railway_token': railwayToken,
-              'client_railway_workspace_id': railwayWorkspaceId,
-              'status': 'pending',
+              'bot_name': botName,
+              'bot_category': botCategory,
+              'telegram_username': telegramUsername,
+              'business_name': businessName,
+              'openai_key': openaiKey,
+              'status': 'active',
             },
             onConflict: 'user_id,bot_id',
           )
           .select('*, bot_catalog(*)')
           .single();
 
-      print('🔵 Upsert successful');
       return Business.fromJson(response);
     } catch (e) {
-      print('🔴 Upsert failed: $e');
       rethrow;
     }
   }
@@ -69,12 +71,5 @@ class BusinessRepositoryImpl implements BusinessRepository {
     } catch (e) {
       return null;
     }
-  }
-
-  @override
-  Future<void> updateRailwayUrl(String businessId, String railwayUrl) async {
-    await _client
-        .from('businesses')
-        .update({'railway_url': railwayUrl}).eq('id', businessId);
   }
 }

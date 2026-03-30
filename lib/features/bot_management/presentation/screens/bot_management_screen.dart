@@ -23,7 +23,7 @@ class BotManagementScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(business.botName ?? s.bmTitle),
+        title: Text(business.botName),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -33,7 +33,6 @@ class BotManagementScreen extends ConsumerWidget {
           children: [
             _buildStatusCard(isActivated, s),
             const SizedBox(height: 32),
-
             Text(
               s.bmActions,
               style: const TextStyle(
@@ -44,7 +43,6 @@ class BotManagementScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -68,9 +66,7 @@ class BotManagementScreen extends ConsumerWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 12),
-
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -78,7 +74,11 @@ class BotManagementScreen extends ConsumerWidget {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => BotConfigScreen(business: business),
+                    builder: (_) => BotConfigScreen(
+                      botId: business.botId,
+                      botName: business.botName,
+                      botCategory: business.botCategory,
+                    ),
                   ),
                 ),
                 icon: const Icon(Icons.settings_suggest_rounded, size: 20),
@@ -94,16 +94,13 @@ class BotManagementScreen extends ConsumerWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 32),
-
             if (!isActivated)
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                  },
+                  onPressed: () {},
                   icon: const Icon(Icons.group_add_rounded),
                   label: Text(
                     s.bmActivateGroup,
@@ -166,9 +163,7 @@ class BotManagementScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isActivated
-                      ? s.bmReady
-                      : s.bmBindGroup,
+                  isActivated ? s.bmReady : s.bmBindGroup,
                   style: const TextStyle(
                       fontSize: 14, color: AppColors.textSecondary),
                 ),

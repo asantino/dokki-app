@@ -12,8 +12,7 @@ import '../../features/settings/presentation/screens/profile_screen.dart';
 import '../../features/settings/presentation/screens/language_screen.dart';
 import '../../features/settings/presentation/screens/notifications_screen.dart';
 import '../../features/bot_management/presentation/screens/bot_management_screen.dart';
-import '../../features/bot_management/presentation/screens/connect_bot_screen.dart';
-import '../../features/bot_management/presentation/screens/bot_config_screen.dart'; // Новый импорт
+import '../../features/bot_management/presentation/screens/bot_config_screen.dart';
 import '../../features/bot_management/domain/business.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -29,11 +28,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = session != null;
       final location = state.matchedLocation;
 
-      // Защищенные маршруты (добавлен /bot-setup)
+      // Защищенные маршруты (добавлен /bot-config)
       final isProtectedRoute = location.startsWith('/profile') ||
           location.startsWith('/payment') ||
-          location.startsWith('/connect-bot') ||
-          location.startsWith('/bot-setup') ||
+          location.startsWith('/bot-config') ||
           location.startsWith('/bot-management');
 
       final isAuthRoute = location == '/auth';
@@ -100,18 +98,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      // Роут настройки бота (новый формат)
       GoRoute(
-        path: '/connect-bot/:botId/:botName',
-        builder: (context, state) => ConnectBotScreen(
+        path: '/bot-config/:botId/:botName/:botCategory',
+        builder: (context, state) => BotConfigScreen(
           botId: state.pathParameters['botId']!,
           botName: state.pathParameters['botName']!,
-        ),
-      ),
-      // НОВЫЙ РОУТ: Экран первичной настройки AI (OpenAI Key, Prompt и т.д.)
-      GoRoute(
-        path: '/bot-setup/:botId',
-        builder: (context, state) => BotConfigScreen(
-          business: state.extra as Business,
+          botCategory: state.pathParameters['botCategory']!,
         ),
       ),
       GoRoute(

@@ -190,13 +190,8 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                       if (session == null) {
                         context.push('/auth');
                       } else {
-                        context.push('/payment', extra: {
-                          'botId': selectedBot.id,
-                          'botName': selectedBot.name,
-                          'botDescription': selectedBot.shortDescription,
-                          'priceMonthly': selectedBot.priceMonthly ?? 0.0,
-                          'priceYearly': selectedBot.priceYearly ?? 0.0,
-                        });
+                        context.push(
+                            '/bot-config/${selectedBot.id}/${selectedBot.name}/${selectedBot.category}');
                       }
                     },
                     child: Text(

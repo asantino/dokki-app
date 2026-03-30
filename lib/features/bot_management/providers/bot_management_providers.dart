@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/supabase/supabase_client.dart';
 import '../domain/business.dart';
@@ -25,37 +24,29 @@ final connectedBotsProvider = FutureProvider<List<Business>>((ref) async {
   return repository.getConnectedBots();
 });
 
-// 4. Провайдер репозитория записей (TomatoAdmin)
-final appointmentsRepositoryProvider =
-    Provider.family<AppointmentsRepository, Business>((ref, business) {
-  final client = SupabaseClient(
-    business.botSupabaseUrl!,
-    business.botSupabaseAnonKey!,
-  );
+// 4. Провайдер репозитория записей (TomatoAdmin) - использует централизованный клиент
+final appointmentsRepositoryProvider = Provider<AppointmentsRepository>((ref) {
+  final client = ref.watch(supabaseClientProvider);
   return AppointmentsRepository(client);
 });
 
-// 5. Провайдер списка записей
+// 5. Провайдер списка записей для конкретного бизнеса
 final appointmentsProvider =
     FutureProvider.family<List<Map<String, dynamic>>, Business>(
         (ref, business) async {
-  return ref.watch(appointmentsRepositoryProvider(business)).getAppointments();
+  return ref.watch(appointmentsRepositoryProvider).getAppointments();
 });
 
-// 6. Провайдер репозитория конфигурации бота
-final botConfigRepositoryProvider =
-    Provider.family<BotConfigRepository, Business>((ref, business) {
-  final client = SupabaseClient(
-    business.botSupabaseUrl!,
-    business.botSupabaseAnonKey!,
-  );
+// 6. Провайдер репозитория конфигурации бота - использует централизованный клиент
+final botConfigRepositoryProvider = Provider<BotConfigRepository>((ref) {
+  final client = ref.watch(supabaseClientProvider);
   return BotConfigRepository(client);
 });
 
-// 7. Провайдер конфигурации
+// 7. Провайдер конфигурации для конкретного бизнеса
 final botConfigProvider =
     FutureProvider.family<Map<String, dynamic>?, Business>(
         (ref, business) async {
-  final businessId = business.botBusinessId ?? business.id;
-  return ref.watch(botConfigRepositoryProvider(business)).getConfig(businessId);
+  final businessId = business.id;
+  return ref.watch(botConfigRepositoryProvider).getConfig(businessId);
 });
