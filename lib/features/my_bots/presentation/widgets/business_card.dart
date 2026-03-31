@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/localization/language_provider.dart';
-import '../../../../core/localization/app_strings.dart';
 import '../../../bot_management/domain/business.dart';
 
-class BusinessCard extends ConsumerWidget {
+class BusinessCard extends StatelessWidget {
   final Business business;
   final VoidCallback onManage;
 
@@ -17,116 +14,145 @@ class BusinessCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppStrings s = ref.watch(stringsProvider);
+  Widget build(BuildContext context) {
+    // Статус: если botId не пуст — Активен, иначе — Настройка
+    final bool isConfigured = business.botId.isNotEmpty;
+    const double cardHeight = 160.0;
 
-    // imageUrl остается String?, поэтому проверка здесь корректна
-    final imageUrl = business.imageUrl ?? '';
-
-    return SizedBox(
-      height: 170,
-      width: double.infinity,
+    return GestureDetector(
+      onTap: onManage,
       child: Container(
+        height: cardHeight,
         clipBehavior: Clip.hardEdge,
+        margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x0D000000),
-              blurRadius: 10,
+              color: Color(0x0F000000),
+              blurRadius: 8,
               offset: Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
-            SizedBox(
-              width: 160,
-              height: 170,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  bottomLeft: Radius.circular(16),
-                ),
+            // Левый блок: Изображение бота
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
+              ),
+              child: SizedBox(
+                width: cardHeight,
+                height: cardHeight,
                 child: CachedNetworkImage(
-                  imageUrl: imageUrl,
+                  imageUrl: business.imageUrl ?? '',
                   fit: BoxFit.cover,
                   alignment: Alignment.topCenter,
                   placeholder: (context, url) => Container(
                     color: AppColors.background,
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.accent,
-                      ),
+                    child: const Icon(
+                      Icons.smart_toy_outlined,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                   errorWidget: (context, url, error) => Container(
                     color: AppColors.background,
                     child: const Icon(
                       Icons.smart_toy_outlined,
-                      size: 48,
                       color: AppColors.textSecondary,
                     ),
                   ),
                 ),
               ),
             ),
+
+            // Правый блок: Контент (строго по структуре bot_card)
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ИСПРАВЛЕНО: botName не может быть null согласно модели
+                    // 1. Название (1 строка)
                     Text(
-                      business.botName,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 0.2,
-                        fontFamily: 'Inter',
-                      ),
+                      business.businessName.isNotEmpty
+                          ? business.businessName
+                          : business.botName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    // specialization — String?, проверка ?? '' остается
-                    Text(
-                      business.specialization ?? '',
                       style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
                         fontFamily: 'Inter',
-                        height: 1.2,
                       ),
+                    ),
+                    const SizedBox(height: 4),
+
+                    // 2. Описание (2 строки, БЕЗ Expanded)
+                    Text(
+                      business.botDescription,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        height: 1.3,
+                        fontFamily: 'Inter',
+                      ),
                     ),
-                    const SizedBox(height: 2),
-                    _buildStatusRow(s),
+                    const SizedBox(height: 8),
+
+                    // 3. Статус Row (фиксированная высота)
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isConfigured ? Colors.green : Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isConfigured ? 'Активен' : 'Настройка',
+                          style: TextStyle(
+                            color: isConfigured ? Colors.green : Colors.orange,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+
+                    // 4. Кнопка (высота 32, прижата к низу через Spacer)
                     const Spacer(),
                     SizedBox(
                       width: double.infinity,
                       height: 32,
-                      child: OutlinedButton(
+                      child: ElevatedButton(
                         onPressed: onManage,
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.accent),
-                          foregroundColor: AppColors.accent,
-                          padding: EdgeInsets.zero,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: AppColors.surface,
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
+                          padding: EdgeInsets.zero,
                         ),
-                        child: Text(
-                          s.bmManage,
-                          style: const TextStyle(
+                        child: const Text(
+                          'УПРАВЛЕНИЕ',
+                          style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             fontFamily: 'Inter',
                           ),
                         ),
@@ -139,46 +165,6 @@ class BusinessCard extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStatusRow(AppStrings s) {
-    Color dotColor;
-    String statusText;
-
-    // business.status не может быть null
-    if (business.status == 'active' && business.telegramGroupId != null) {
-      dotColor = AppColors.success;
-      statusText = s.bmStatusActive;
-    } else if (business.status == 'active' &&
-        business.telegramGroupId == null) {
-      dotColor = AppColors.warning;
-      statusText = s.bmStatusSetup;
-    } else {
-      dotColor = AppColors.error;
-      statusText = s.bmStatusOff;
-    }
-
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: dotColor,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          statusText,
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.textSecondary,
-            fontFamily: 'Inter',
-          ),
-        ),
-      ],
     );
   }
 }

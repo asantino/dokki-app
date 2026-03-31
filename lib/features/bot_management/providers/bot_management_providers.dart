@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../core/supabase/supabase_client.dart';
 import '../domain/business.dart';
 import '../domain/business_repository.dart';
@@ -18,13 +17,14 @@ final businessRepositoryProvider = Provider<BusinessRepository>((ref) {
   return BusinessRepositoryImpl(ref.watch(supabaseClientProvider));
 });
 
-// 3. Провайдер списка подключенных ботов (НУЖЕН ДЛЯ КАТАЛОГА)
-final connectedBotsProvider = FutureProvider<List<Business>>((ref) async {
+// 3. Провайдер списка подключенных ботов (теперь с JOIN внутри репозитория)
+final connectedBotsProvider =
+    FutureProvider.autoDispose<List<Business>>((ref) async {
   final repository = ref.watch(businessRepositoryProvider);
   return repository.getConnectedBots();
 });
 
-// 4. Провайдер репозитория записей (TomatoAdmin) - использует централизованный клиент
+// 4. Провайдер репозитория записей (TomatoAdmin)
 final appointmentsRepositoryProvider = Provider<AppointmentsRepository>((ref) {
   final client = ref.watch(supabaseClientProvider);
   return AppointmentsRepository(client);
@@ -37,7 +37,7 @@ final appointmentsProvider =
   return ref.watch(appointmentsRepositoryProvider).getAppointments();
 });
 
-// 6. Провайдер репозитория конфигурации бота - использует централизованный клиент
+// 6. Провайдер репозитория конфигурации бота
 final botConfigRepositoryProvider = Provider<BotConfigRepository>((ref) {
   final client = ref.watch(supabaseClientProvider);
   return BotConfigRepository(client);

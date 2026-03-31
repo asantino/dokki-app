@@ -55,13 +55,17 @@ class BotCard extends ConsumerWidget {
                   alignment: Alignment.topCenter,
                   placeholder: (context, url) => Container(
                     color: AppColors.background,
-                    child: const Icon(Icons.smart_toy_outlined,
-                        color: AppColors.textSecondary),
+                    child: const Icon(
+                      Icons.smart_toy_outlined,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   errorWidget: (context, url, error) => Container(
                     color: AppColors.background,
-                    child: const Icon(Icons.smart_toy_outlined,
-                        color: AppColors.textSecondary),
+                    child: const Icon(
+                      Icons.smart_toy_outlined,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ),
@@ -74,6 +78,7 @@ class BotCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 1. Название
                     Text(
                       bot.name,
                       maxLines: 1,
@@ -82,37 +87,38 @@ class BotCard extends ConsumerWidget {
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 17,
+                        fontFamily: 'Inter',
                       ),
                     ),
                     const SizedBox(height: 4),
 
-                    // Краткое описание (вместо категории)
-                    Expanded(
-                      child: Text(
-                        bot.shortDescription,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
-                          height: 1.3,
-                        ),
+                    // 2. Описание (строго 2 строки)
+                    Text(
+                      bot.shortDescription,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        height: 1.3,
+                        fontFamily: 'Inter',
                       ),
                     ),
-
                     const SizedBox(height: 8),
 
-                    // Цена в новом формате
+                    // 3. Цена
                     Text(
                       'from \$${(bot.priceMonthly ?? 0).toStringAsFixed(0)}/${s.payMonth}',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 13,
+                        fontFamily: 'Inter',
                       ),
                     ),
                     const SizedBox(height: 6),
 
-                    // Кнопка
+                    // 4. Кнопка
+                    const Spacer(),
                     SizedBox(
                       width: double.infinity,
                       height: 32,
@@ -127,11 +133,12 @@ class BotCard extends ConsumerWidget {
                           ),
                           padding: EdgeInsets.zero,
                         ),
-                        child: Text(
-                          s.catDetails,
-                          style: const TextStyle(
+                        child: const Text(
+                          'ПОДКЛЮЧИТЬ',
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
+                            fontFamily: 'Inter',
                           ),
                         ),
                       ),

@@ -18,7 +18,14 @@ class CatalogScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(s.navShop),
+        title: Text(
+          s.navShop,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Inter',
+          ),
+        ),
         centerTitle: true,
         backgroundColor: AppColors.background,
         elevation: 0,
@@ -30,7 +37,10 @@ class CatalogScreen extends ConsumerWidget {
         error: (err, stack) => Center(
           child: Text(
             'Ошибка: $err',
-            style: const TextStyle(color: AppColors.error),
+            style: const TextStyle(
+              color: AppColors.error,
+              fontFamily: 'Inter',
+            ),
           ),
         ),
         data: (bots) {
@@ -38,7 +48,10 @@ class CatalogScreen extends ConsumerWidget {
             return Center(
               child: Text(
                 s.catEmpty,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontFamily: 'Inter',
+                ),
               ),
             );
           }
@@ -51,8 +64,10 @@ class CatalogScreen extends ConsumerWidget {
 
               return BotCard(
                 bot: bot,
-                // Передаем categoryKey (admin/sales/support) вместо bot.id
-                onConnect: () => context.push('/bot-detail/${bot.categoryKey}'),
+                // Используем bot.categoryKey для роута конфигурации
+                onConnect: () => context.push(
+                  '/bot-config/${bot.id}/${bot.name}/${bot.categoryKey}',
+                ),
               );
             },
           );

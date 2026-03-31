@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+// Исправленный импорт
+import '../../providers/bot_management_providers.dart';
 
 class BotConfigScreen extends ConsumerStatefulWidget {
   final String botId;
@@ -26,20 +27,18 @@ class BotConfigScreen extends ConsumerStatefulWidget {
 class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Контроллеры ввода
-  final _telegramUsernameController = TextEditingController();
+  final _botTokenController = TextEditingController();
   final _apiKeyController = TextEditingController();
   final _businessNameController = TextEditingController();
   final _welcomeController = TextEditingController();
-  final _promptController = TextEditingController();
 
-  // Состояния ошибок для конкретных полей (Error Mapping)
-  String? _usernameError;
+  String? _botTokenError;
   String? _apiKeyError;
   String? _businessNameError;
 
   bool _isLoading = false;
   bool _obscureApiKey = true;
+  bool _obscureBotToken = true;
 
   @override
   void initState() {
@@ -51,111 +50,82 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
     _businessNameController.text = widget.botName;
     _welcomeController.text =
         'Здравствуйте! Вас приветствует ${widget.botName}. Чем могу помочь?';
-
-    _promptController.text = '''Ты — консультант компании ${widget.botName}.
-
-Твоя задача:
-- Помогать клиентам с выбором услуг/товаров
-- Отвечать на вопросы о ценах
-- Передавать сложные вопросы менеджеру
-
-Стиль: дружелюбный, профессиональный.''';
   }
 
   @override
   void dispose() {
-    _telegramUsernameController.dispose();
+    _botTokenController.dispose();
     _apiKeyController.dispose();
     _businessNameController.dispose();
     _welcomeController.dispose();
-    _promptController.dispose();
     super.dispose();
   }
 
   Future<void> _saveConfig() async {
-    // Сбрасываем ошибки перед новой попыткой
     setState(() {
-      _usernameError = null;
+      _botTokenError = null;
       _apiKeyError = null;
       _businessNameError = null;
     });
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      // 1. ОТПРАВКА КОНФИГУРАЦИИ НА БОТА
       final url = Uri.parse(ApiConstants.configUrl);
-      debugPrint('🔵 Sending config to: $url');
-
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'telegram_username': _telegramUsernameController.text.trim(),
+          'telegram_token': _botTokenController.text.trim(),
           'openai_key': _apiKeyController.text.trim(),
           'business_name': _businessNameController.text.trim(),
           'welcome_message': _welcomeController.text.trim(),
-          'system_prompt': _promptController.text.trim(),
         }),
       );
 
       final data = jsonDecode(response.body);
 
-      // 2. ОБРАБОТКА ОТВЕТА
       if (response.statusCode == 200 && data['success'] == true) {
-        // 3. СОХРАНЕНИЕ В SUPABASE
-        final supabase = Supabase.instance.client;
-        await supabase.from('businesses').insert({
-          'user_id': supabase.auth.currentUser!.id,
-          'bot_id': widget.botId,
-          'bot_name': widget.botName,
-          'bot_category': widget.botCategory,
-          'telegram_username': _telegramUsernameController.text.trim(),
-          'business_name': _businessNameController.text.trim(),
-          'status': 'active',
-          'created_at': DateTime.now().toIso8601String(),
-        });
+        final telegramUsername = data['username'] as String? ?? '';
 
-        // 4. ПОКАЗАТЬ SUCCESS DIALOG
+        // Используем businessRepositoryProvider из исправленного импорта
+        await ref.read(businessRepositoryProvider).connectBot(
+              botId: widget.botId,
+              botToken: _botTokenController.text.trim(),
+              botName: widget.botName,
+              botCategory: widget.botCategory,
+              telegramUsername: telegramUsername,
+              businessName: _businessNameController.text.trim(),
+              openaiKey: _apiKeyController.text.trim(),
+              alertsTopicId: 6,
+            );
+
         if (mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              title: const Text('✅ Бот подключён!'),
-              content: Text(
-                'Ваш бот ${_telegramUsernameController.text.trim()} готов к работе.\n\nНапишите ему /start в Telegram для проверки.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(); // Закрыть диалог
-                    context.go('/'); // Вернуться на главный экран
-                  },
-                  child: const Text('Перейти к ботам'),
-                ),
-              ],
-            ),
-          );
+          _showSuccessDialog(telegramUsername);
         }
       } else {
-        // Логика маппинга ошибок на поля ввода
         final errorMessage = data['error'] ?? 'Ошибка сохранения';
-        final errorField =
-            data['field']; // 'openai_key', 'telegram_username' и т.д.
+        final errorField = data['field'];
 
         setState(() {
-          if (errorField == 'telegram_username') _usernameError = errorMessage;
-          if (errorField == 'openai_key') _apiKeyError = errorMessage;
-          if (errorField == 'business_name') _businessNameError = errorMessage;
+          if (errorField == 'telegram_token') {
+            _botTokenError = errorMessage;
+          }
+          if (errorField == 'openai_key') {
+            _apiKeyError = errorMessage;
+          }
+          if (errorField == 'business_name') {
+            _businessNameError = errorMessage;
+          }
         });
 
         throw Exception(errorMessage);
       }
     } catch (e) {
-      debugPrint('🔴 CONFIG SAVE ERROR: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -165,8 +135,36 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  void _showSuccessDialog(String username) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('✅ Бот подключён!',
+            style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          'Ваш бот $username готов к работе.\n\nНапишите ему /start в Telegram для проверки.',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.go('/');
+            },
+            child: const Text('Перейти к ботам',
+                style: TextStyle(color: AppColors.accent)),
+          ),
+        ],
+      ),
+    );
   }
 
   InputDecoration _buildDecor(String label, String hint, {Widget? suffix}) {
@@ -201,7 +199,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Настройка ИИ'),
-        centerTitle: false,
+        backgroundColor: AppColors.background,
         elevation: 0,
       ),
       body: Form(
@@ -211,54 +209,64 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ИСПРАВЛЕНИЕ: Добавлен const
-              const Card(
-                margin: EdgeInsets.all(16),
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.blue),
-                          SizedBox(width: 8),
-                          Text(
-                            'Как подключить бота',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 12),
-                      Text('1. Откройте @BotFather в Telegram'),
-                      Text('2. Отправьте команду /newbot'),
-                      Text('3. Следуйте инструкциям'),
-                      Text('4. Скопируйте токен бота'),
-                      Text('5. Вставьте ниже вместе с другими данными'),
-                    ],
-                  ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: AppColors.accent),
+                        SizedBox(width: 8),
+                        Text('Как подключить бота',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary)),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Text('1. Откройте @BotFather в Telegram',
+                        style: TextStyle(color: AppColors.textSecondary)),
+                    Text('2. Отправьте команду /newbot',
+                        style: TextStyle(color: AppColors.textSecondary)),
+                    Text('3. Следуйте инструкциям',
+                        style: TextStyle(color: AppColors.textSecondary)),
+                    Text('4. Скопируйте токен бота',
+                        style: TextStyle(color: AppColors.textSecondary)),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Username Бота
+              const SizedBox(height: 24),
               TextFormField(
-                controller: _telegramUsernameController,
+                controller: _botTokenController,
+                obscureText: _obscureBotToken,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration:
-                    _buildDecor('Telegram Bot Username', '@my_sales_bot')
-                        .copyWith(
-                  errorText: _usernameError,
-                ),
+                decoration: _buildDecor(
+                  'Telegram Bot Token',
+                  '123456:ABC-DEF...',
+                  suffix: IconButton(
+                    icon: Icon(
+                        _obscureBotToken
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: AppColors.textSecondary),
+                    onPressed: () =>
+                        setState(() => _obscureBotToken = !_obscureBotToken),
+                  ),
+                ).copyWith(errorText: _botTokenError),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Введите username';
-                  if (!v.trim().startsWith('@')) return 'Должен начинаться с @';
+                  if (v == null || v.isEmpty) {
+                    return 'Введите токен';
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
-              // OpenAI Key
               TextFormField(
                 controller: _apiKeyController,
                 obscureText: _obscureApiKey,
@@ -278,32 +286,30 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                 ).copyWith(errorText: _apiKeyError),
                 validator: (v) {
                   final key = v?.trim() ?? "";
-                  if (key.isEmpty) return 'Введите ключ API';
-                  // ИСПРАВЛЕНИЕ: Добавлены фигурные скобки
-                  if (!key.startsWith('sk-')) {
-                    return 'Ключ должен начинаться с "sk-"';
+                  if (key.isEmpty) {
+                    return 'Введите ключ API';
                   }
-                  if (key.length < 40) return 'Ключ слишком короткий';
+                  if (!key.startsWith('sk-')) {
+                    return 'Должен начинаться с "sk-"';
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
-              // Имя бизнеса
               TextFormField(
                 controller: _businessNameController,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: _buildDecor('Название компании', 'Напр: Dokki Docs')
-                    .copyWith(
-                  errorText: _businessNameError,
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Введите название бизнеса'
-                    : null,
+                decoration:
+                    _buildDecor('Название компании', 'Напр: Dokki Sales')
+                        .copyWith(errorText: _businessNameError),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Введите название';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
-
-              // Приветствие
               TextFormField(
                 controller: _welcomeController,
                 maxLines: 3,
@@ -311,20 +317,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                 decoration:
                     _buildDecor('Приветствие', 'Что бот скажет первым?'),
               ),
-              const SizedBox(height: 20),
-
-              // Промпт
-              TextFormField(
-                controller: _promptController,
-                maxLines: 10,
-                style: const TextStyle(
-                    color: AppColors.textPrimary, height: 1.4, fontSize: 14),
-                decoration: _buildDecor('Инструкции для ИИ (Промпт)',
-                    'Опишите правила поведения бота...'),
-              ),
               const SizedBox(height: 40),
-
-              // Кнопка сохранения
               SizedBox(
                 width: double.infinity,
                 height: 58,
@@ -352,7 +345,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                         ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
             ],
           ),
         ),

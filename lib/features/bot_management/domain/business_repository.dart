@@ -9,11 +9,12 @@ abstract class BusinessRepository {
     required String telegramUsername,
     required String businessName,
     String? openaiKey,
+    int? alertsTopicId, // Добавлено
   });
 
   Future<List<Business>> getConnectedBots();
 
   Future<Business?> getBusinessById(String id);
 
-  // Метод updateRailwayUrl отсюда тоже нужно УДАЛИТЬ!
+  // Метод updateRailwayUrl удален согласно инструкции
 }

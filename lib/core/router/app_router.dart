@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../navigation/main_screen.dart';
 import '../supabase/supabase_client.dart';
-import '../../features/catalog/presentation/screens/bot_detail_screen.dart';
 import '../../features/payment/presentation/screens/payment_screen.dart';
 import '../../features/settings/presentation/screens/profile_screen.dart';
 import '../../features/settings/presentation/screens/language_screen.dart';
@@ -28,7 +27,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = session != null;
       final location = state.matchedLocation;
 
-      // Защищенные маршруты (добавлен /bot-config)
+      // Защищенные маршруты
       final isProtectedRoute = location.startsWith('/profile') ||
           location.startsWith('/payment') ||
           location.startsWith('/bot-config') ||
@@ -80,12 +79,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
-        path: '/bot-detail/:category',
-        builder: (context, state) => BotDetailScreen(
-          category: state.pathParameters['category']!,
-        ),
-      ),
-      GoRoute(
         path: '/payment',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>;
@@ -98,7 +91,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      // Роут настройки бота (новый формат)
+      // Роут настройки бота
       GoRoute(
         path: '/bot-config/:botId/:botName/:botCategory',
         builder: (context, state) => BotConfigScreen(
@@ -107,6 +100,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           botCategory: state.pathParameters['botCategory']!,
         ),
       ),
+      // Роут управления конкретным ботом
       GoRoute(
         path: '/bot-management/:botId',
         builder: (context, state) => BotManagementScreen(

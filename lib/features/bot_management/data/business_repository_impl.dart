@@ -16,6 +16,7 @@ class BusinessRepositoryImpl implements BusinessRepository {
     required String telegramUsername,
     required String businessName,
     String? openaiKey,
+    int? alertsTopicId, // Добавлено
   }) async {
     final userId = _client.auth.currentUser!.id;
 
@@ -32,11 +33,14 @@ class BusinessRepositoryImpl implements BusinessRepository {
               'telegram_username': telegramUsername,
               'business_name': businessName,
               'openai_key': openaiKey,
+              'alerts_topic_id':
+                  alertsTopicId, // Добавлено для сохранения в базу
               'status': 'active',
+              'updated_at': DateTime.now().toIso8601String(),
             },
             onConflict: 'user_id,bot_id',
           )
-          .select('*, bot_catalog(*)')
+          .select('*, bot_catalog(image_url, short_description)')
           .single();
 
       return Business.fromJson(response);
@@ -47,15 +51,18 @@ class BusinessRepositoryImpl implements BusinessRepository {
 
   @override
   Future<List<Business>> getConnectedBots() async {
-    final userId = _client.auth.currentUser!.id;
+    final user = _client.auth.currentUser;
+    if (user == null) return [];
 
     final response = await _client
         .from('businesses')
-        .select('*, bot_catalog(*)')
-        .eq('user_id', userId)
+        .select('*, bot_catalog(image_url, short_description)')
+        .eq('user_id', user.id)
         .order('created_at', ascending: false);
 
-    return (response as List).map((json) => Business.fromJson(json)).toList();
+    return (response as List).map((json) {
+      return Business.fromJson(json as Map<String, dynamic>);
+    }).toList();
   }
 
   @override
@@ -63,7 +70,7 @@ class BusinessRepositoryImpl implements BusinessRepository {
     try {
       final response = await _client
           .from('businesses')
-          .select('*, bot_catalog(*)')
+          .select('*, bot_catalog(image_url, short_description)')
           .eq('id', id)
           .single();
 
