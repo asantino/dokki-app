@@ -59,19 +59,30 @@ class MyBotsScreen extends ConsumerWidget {
                 return _buildEmptyState(context, s);
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: businesses.length,
-                itemBuilder: (context, index) {
-                  final business = businesses[index];
-                  return BusinessCard(
-                    business: business,
-                    onManage: () => context.push(
-                      '/bot-management/${business.id}',
-                      extra: business,
-                    ),
-                  );
-                },
+              // РЕШЕНИЕ ЗАДАЧИ 60: Ограничиваем ширину списка для Desktop
+              return Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: businesses.length,
+                    itemBuilder: (context, index) {
+                      final business = businesses[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: 12), // Отступ между карточками
+                        child: BusinessCard(
+                          business: business,
+                          onManage: () => context.push(
+                            '/bot-management/${business.id}',
+                            extra: business,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               );
             },
           );
