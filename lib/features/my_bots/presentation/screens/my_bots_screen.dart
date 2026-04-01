@@ -59,19 +59,20 @@ class MyBotsScreen extends ConsumerWidget {
                 return _buildEmptyState(context, s);
               }
 
-              // РЕШЕНИЕ ЗАДАЧИ 60: Ограничиваем ширину списка для Desktop
-              return Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: businesses.length,
-                    itemBuilder: (context, index) {
-                      final business = businesses[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(
-                            bottom: 12), // Отступ между карточками
+              return ListView.builder(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                itemCount: businesses.length,
+                itemBuilder: (context, index) {
+                  final business = businesses[index];
+
+                  // Alignment.centerLeft прижимает карточку к левой части
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         child: BusinessCard(
                           business: business,
                           onManage: () => context.push(
@@ -79,10 +80,10 @@ class MyBotsScreen extends ConsumerWidget {
                             extra: business,
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
+                    ),
+                  );
+                },
               );
             },
           );
@@ -105,10 +106,9 @@ class MyBotsScreen extends ConsumerWidget {
               s.myBotsLocked,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-                fontFamily: 'Inter',
-              ),
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
+                  fontFamily: 'Inter'),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -125,10 +125,9 @@ class MyBotsScreen extends ConsumerWidget {
                 child: Text(
                   s.authLogin.toUpperCase(),
                   style: const TextStyle(
-                    color: AppColors.surface,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Inter',
-                  ),
+                      color: AppColors.surface,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Inter'),
                 ),
               ),
             ),
@@ -152,10 +151,9 @@ class MyBotsScreen extends ConsumerWidget {
               s.myBotsEmpty,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-                fontFamily: 'Inter',
-              ),
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
+                  fontFamily: 'Inter'),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -171,10 +169,9 @@ class MyBotsScreen extends ConsumerWidget {
                 child: Text(
                   s.myBotsGoCatalog.toUpperCase(),
                   style: const TextStyle(
-                    color: AppColors.accent,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Inter',
-                  ),
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Inter'),
                 ),
               ),
             ),

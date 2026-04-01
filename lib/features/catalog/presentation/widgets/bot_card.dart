@@ -8,7 +8,7 @@ import '../../domain/bot.dart';
 class BotCard extends ConsumerWidget {
   final Bot bot;
   final VoidCallback onConnect;
-  final bool isGridMode; // Добавили параметр для смены лэйаута
+  final bool isGridMode;
 
   const BotCard({
     super.key,
@@ -21,7 +21,6 @@ class BotCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(stringsProvider);
 
-    // В режиме сетки (isGridMode) используем Column, в обычном — Row
     return GestureDetector(
       onTap: onConnect,
       child: Container(
@@ -43,7 +42,6 @@ class BotCard extends ConsumerWidget {
     );
   }
 
-  // ВЕРТИКАЛЬНЫЙ ЛЭЙАУТ (Для десктопной сетки)
   Widget _buildVerticalLayout(dynamic s) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,7 +61,6 @@ class BotCard extends ConsumerWidget {
     );
   }
 
-  // ГОРИЗОНТАЛЬНЫЙ ЛЭЙАУТ (Для мобильного списка - как было)
   Widget _buildHorizontalLayout(dynamic s) {
     return Row(
       children: [
@@ -82,20 +79,42 @@ class BotCard extends ConsumerWidget {
     );
   }
 
+  // --- ЛОГИКА ОБРАБОТКИ ИЗОБРАЖЕНИЯ (МАГАЗИН) ---
   Widget _buildImage() {
+    // 1. Берем базовый URL
+    String rawUrl = bot.imageUrl ?? '';
+
+    // 2. Внедряем папку /shop/ и добавляем версию для очистки кэша
+    // Это позволит тебе не менять ссылки в базе данных вручную
+    String finalUrl = rawUrl;
+    if (rawUrl.isNotEmpty) {
+      finalUrl = rawUrl.replaceFirst('bot-images/', 'bot-images/shop/');
+      finalUrl = '$finalUrl?v=1.0.2';
+    }
+
     return CachedNetworkImage(
-      imageUrl: bot.imageUrl ?? '',
+      imageUrl: finalUrl,
       fit: BoxFit.cover,
       alignment: Alignment.topCenter,
       placeholder: (context, url) => Container(
         color: AppColors.background,
-        child: const Icon(Icons.smart_toy_outlined,
-            color: AppColors.textSecondary),
+        child: const Center(
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: AppColors.accent),
+        ),
       ),
       errorWidget: (context, url, error) => Container(
         color: AppColors.background,
-        child: const Icon(Icons.smart_toy_outlined,
-            color: AppColors.textSecondary),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.smart_toy_outlined,
+                color: AppColors.textSecondary, size: 40),
+            SizedBox(height: 4),
+            Text('No Image',
+                style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+          ],
+        ),
       ),
     );
   }
@@ -118,7 +137,7 @@ class BotCard extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           bot.shortDescription,
-          maxLines: isVertical ? 2 : 2,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: AppColors.textSecondary,
