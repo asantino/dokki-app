@@ -13,24 +13,8 @@
   ],
   "rewrites": [
     {
-      "source": "/.well-known/apple-app-site-association",
-      "destination": "/.well-known/apple-app-site-association"
-    },
-    {
-      "source": "/apple-app-site-association",
-      "destination": "/.well-known/apple-app-site-association"
-    },
-    {
-      "source": "/payment-success",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/payment-cancel",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/bot-config/(.*)",
-      "destination": "/index.html"
+      "source": "/.well-known/(.*)",
+      "destination": "/.well-known/$1"
     },
     {
       "source": "/(.*)",
