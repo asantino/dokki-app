@@ -20,57 +20,59 @@ serve(async (req) => {
 
   try {
     const body = await req.text()
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Используем асинхронный конструктор для Deno
+    const event = await stripe.webhooks.constructEventAsync(
+      body, 
+      signature, 
+      webhookSecret
+    )
 
-    console.log('Event type:', event.type)
+    console.log(`🔔 Stripe Event Received: ${event.type}`)
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        
         const customerEmail = session.customer_email
         const subscriptionId = session.subscription as string
         
         if (!customerEmail) {
-          console.error('No customer email in session')
+          console.error('❌ No customer email in session')
           break
         }
 
+        // Находим пользователя по email
         const { data: userData, error: userError } = await supabase.auth.admin.listUsers()
-        
-        if (userError) {
-          console.error('Error fetching users:', userError)
-          break
-        }
+        if (userError) throw userError
 
         const user = userData.users.find(u => u.email === customerEmail)
-        
         if (!user) {
-          console.error('User not found:', customerEmail)
+          console.error(`❌ User with email ${customerEmail} not found in Supabase`)
           break
         }
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
         
-        const { error: insertError } = await supabase
+        // Создаем или обновляем подписку в БД
+        const { error: upsertError } = await supabase
           .from('subscriptions')
           .upsert({
             user_id: user.id,
             stripe_customer_id: session.customer as string,
             stripe_subscription_id: subscriptionId,
             status: 'active',
-            plan: 'monthly_50',
+            plan: 'monthly_50', // Можно динамически брать из Stripe, если нужно
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
 
-        if (insertError) {
-          console.error('Error creating subscription:', insertError)
+        if (upsertError) {
+          console.error('❌ Error saving subscription:', upsertError)
         } else {
-          console.log('Subscription created for user:', user.id)
+          console.log(`✅ Subscription activated for user: ${user.id}`)
         }
         break
       }
@@ -88,9 +90,9 @@ serve(async (req) => {
           .eq('stripe_subscription_id', subscription.id)
 
         if (updateError) {
-          console.error('Error updating subscription:', updateError)
+          console.error('❌ Error updating subscription:', updateError)
         } else {
-          console.log('Subscription updated:', subscription.id)
+          console.log(`🔄 Subscription updated: ${subscription.id}`)
         }
         break
       }
@@ -107,9 +109,9 @@ serve(async (req) => {
           .eq('stripe_subscription_id', subscription.id)
 
         if (deleteError) {
-          console.error('Error cancelling subscription:', deleteError)
+          console.error('❌ Error cancelling subscription:', deleteError)
         } else {
-          console.log('Subscription cancelled:', subscription.id)
+          console.log(`🚫 Subscription cancelled: ${subscription.id}`)
         }
         break
       }
@@ -127,27 +129,31 @@ serve(async (req) => {
             .eq('stripe_subscription_id', invoice.subscription as string)
 
           if (updateError) {
-            console.error('Error updating subscription status:', updateError)
+            console.error('❌ Error updating failed payment status:', updateError)
           } else {
-            console.log('Subscription marked as past_due:', invoice.subscription)
+            console.log(`⚠️ Subscription marked as past_due: ${invoice.subscription}`)
           }
         }
         break
       }
 
       default:
-        console.log('Unhandled event type:', event.type)
+        console.log(`ℹ️ Unhandled event type: ${event.type}`)
     }
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { 'Content-Type': 'application/json' },
       status: 200,
     })
+
   } catch (err) {
-    console.error('Webhook error:', err)
+    console.error(`❌ Webhook error: ${err.message}`)
     return new Response(
       JSON.stringify({ error: err.message }),
-      { status: 400 }
+      { 
+        headers: { 'Content-Type': 'application/json' },
+        status: 400 
+      }
     )
   }
 })

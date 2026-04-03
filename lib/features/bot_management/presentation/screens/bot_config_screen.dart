@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // ← ДОБАВЛЕН
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_theme.dart';
-// Исправленный импорт
 import '../../providers/bot_management_providers.dart';
 
 class BotConfigScreen extends ConsumerStatefulWidget {
@@ -26,7 +26,6 @@ class BotConfigScreen extends ConsumerStatefulWidget {
 
 class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final _botTokenController = TextEditingController();
   final _apiKeyController = TextEditingController();
   final _businessNameController = TextEditingController();
@@ -68,9 +67,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
       _businessNameError = null;
     });
 
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
@@ -92,7 +89,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
       if (response.statusCode == 200 && data['success'] == true) {
         final telegramUsername = data['username'] as String? ?? '';
 
-        // Используем businessRepositoryProvider из исправленного импорта
         await ref.read(businessRepositoryProvider).connectBot(
               botId: widget.botId,
               botToken: _botTokenController.text.trim(),
@@ -104,23 +100,15 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               alertsTopicId: 6,
             );
 
-        if (mounted) {
-          _showSuccessDialog(telegramUsername);
-        }
+        if (mounted) _showSuccessDialog(telegramUsername);
       } else {
         final errorMessage = data['error'] ?? 'Ошибка сохранения';
         final errorField = data['field'];
 
         setState(() {
-          if (errorField == 'telegram_token') {
-            _botTokenError = errorMessage;
-          }
-          if (errorField == 'openai_key') {
-            _apiKeyError = errorMessage;
-          }
-          if (errorField == 'business_name') {
-            _businessNameError = errorMessage;
-          }
+          if (errorField == 'telegram_token') _botTokenError = errorMessage;
+          if (errorField == 'openai_key') _apiKeyError = errorMessage;
+          if (errorField == 'business_name') _businessNameError = errorMessage;
         });
 
         throw Exception(errorMessage);
@@ -135,9 +123,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -242,59 +228,114 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              TextFormField(
-                controller: _botTokenController,
-                obscureText: _obscureBotToken,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: _buildDecor(
-                  'Telegram Bot Token',
-                  '123456:ABC-DEF...',
-                  suffix: IconButton(
-                    icon: Icon(
-                        _obscureBotToken
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: AppColors.textSecondary),
-                    onPressed: () =>
-                        setState(() => _obscureBotToken = !_obscureBotToken),
+
+              // TELEGRAM BOT TOKEN С КНОПКОЙ PASTE
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _botTokenController,
+                      obscureText: _obscureBotToken,
+                      autofillHints: const [AutofillHints.password],
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: _buildDecor(
+                        'Telegram Bot Token',
+                        '123456:ABC-DEF...',
+                        suffix: IconButton(
+                          icon: Icon(
+                              _obscureBotToken
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: AppColors.textSecondary),
+                          onPressed: () => setState(
+                              () => _obscureBotToken = !_obscureBotToken),
+                        ),
+                      ).copyWith(errorText: _botTokenError),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Введите токен';
+                        return null;
+                      },
+                    ),
                   ),
-                ).copyWith(errorText: _botTokenError),
-                validator: (v) {
-                  if (v == null || v.isEmpty) {
-                    return 'Введите токен';
-                  }
-                  return null;
-                },
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: IconButton(
+                      icon: const Icon(Icons.content_paste,
+                          color: AppColors.accent, size: 28),
+                      onPressed: () async {
+                        final data =
+                            await Clipboard.getData(Clipboard.kTextPlain);
+                        if (data?.text != null) {
+                          setState(() {
+                            _botTokenController.text = data!.text!;
+                            _botTokenError = null;
+                          });
+                        }
+                      },
+                      tooltip: 'Paste',
+                    ),
+                  ),
+                ],
               ),
+
               const SizedBox(height: 20),
-              TextFormField(
-                controller: _apiKeyController,
-                obscureText: _obscureApiKey,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: _buildDecor(
-                  'OpenAI API Key',
-                  'sk-proj-...',
-                  suffix: IconButton(
-                    icon: Icon(
-                        _obscureApiKey
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: AppColors.textSecondary),
-                    onPressed: () =>
-                        setState(() => _obscureApiKey = !_obscureApiKey),
+
+              // OPENAI API KEY С КНОПКОЙ PASTE
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _apiKeyController,
+                      obscureText: _obscureApiKey,
+                      autofillHints: const [AutofillHints.password],
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: _buildDecor(
+                        'OpenAI API Key',
+                        'sk-proj-...',
+                        suffix: IconButton(
+                          icon: Icon(
+                              _obscureApiKey
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: AppColors.textSecondary),
+                          onPressed: () =>
+                              setState(() => _obscureApiKey = !_obscureApiKey),
+                        ),
+                      ).copyWith(errorText: _apiKeyError),
+                      validator: (v) {
+                        final key = v?.trim() ?? "";
+                        if (key.isEmpty) return 'Введите ключ API';
+                        if (!key.startsWith('sk-'))
+                          return 'Должен начинаться с "sk-"';
+                        return null;
+                      },
+                    ),
                   ),
-                ).copyWith(errorText: _apiKeyError),
-                validator: (v) {
-                  final key = v?.trim() ?? "";
-                  if (key.isEmpty) {
-                    return 'Введите ключ API';
-                  }
-                  if (!key.startsWith('sk-')) {
-                    return 'Должен начинаться с "sk-"';
-                  }
-                  return null;
-                },
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: IconButton(
+                      icon: const Icon(Icons.content_paste,
+                          color: AppColors.accent, size: 28),
+                      onPressed: () async {
+                        final data =
+                            await Clipboard.getData(Clipboard.kTextPlain);
+                        if (data?.text != null) {
+                          setState(() {
+                            _apiKeyController.text = data!.text!;
+                            _apiKeyError = null;
+                          });
+                        }
+                      },
+                      tooltip: 'Paste',
+                    ),
+                  ),
+                ],
               ),
+
               const SizedBox(height: 20),
               TextFormField(
                 controller: _businessNameController,
@@ -303,9 +344,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                     _buildDecor('Название компании', 'Напр: Dokki Sales')
                         .copyWith(errorText: _businessNameError),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'Введите название';
-                  }
+                  if (v == null || v.trim().isEmpty) return 'Введите название';
                   return null;
                 },
               ),
