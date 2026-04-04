@@ -12,8 +12,9 @@ class CatalogScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ВАЖНО: Убедись, что провайдер называется именно botsProvider или botCatalogProvider
+    // Основной провайдер списка ботов
     final botsAsync = ref.watch(botsProvider);
+    // Провайдер локализованных строк
     final s = ref.watch(stringsProvider);
 
     return Scaffold(
@@ -36,7 +37,6 @@ class CatalogScreen extends ConsumerWidget {
           child: CircularProgressIndicator(color: AppColors.accent),
         ),
         error: (err, stack) {
-          // ДЕБАГ: Логируем ошибку, если запрос к Supabase упал
           debugPrint('-----------------------------------------');
           debugPrint('❌ ОШИБКА ЗАГРУЗКИ КАТАЛОГА:');
           debugPrint('ОШИБКА: $err');
@@ -54,17 +54,19 @@ class CatalogScreen extends ConsumerWidget {
           );
         },
         data: (bots) {
-          // ДЕБАГ: Логируем данные, если запрос прошел успешно
+          // --- МОЩНЫЙ ДЕБАГ-ЛОГ ДЛЯ ПРОВЕРКИ КАРТИНОК ---
           debugPrint('-----------------------------------------');
           debugPrint('✅ ДАННЫЕ ПОЛУЧЕНЫ УСПЕШНО');
           debugPrint('✅ ЗАГРУЖЕНО БОТОВ: ${bots.length}');
+
           if (bots.isNotEmpty) {
             debugPrint('📦 ИМЕНА: ${bots.map((b) => b.name).toList()}');
+            // Это самое важное: проверяем, что imageUrl у всех РАЗНЫЕ
             debugPrint(
-                '📦 КЛЮЧИ КАТЕГОРИЙ: ${bots.map((b) => b.categoryKey).toList()}');
+                '🖼 URL КАРТИНОК: ${bots.map((b) => '${b.name}: ${b.imageUrl}').toList()}');
           } else {
             debugPrint(
-                '⚠️ ПРЕДУПРЕЖДЕНИЕ: Список пуст. Проверь RLS или флаг is_active в БД.');
+                '⚠️ ПРЕДУПРЕЖДЕНИЕ: Список пуст. Проверь RLS или данные в БД.');
           }
           debugPrint('-----------------------------------------');
 
@@ -82,7 +84,7 @@ class CatalogScreen extends ConsumerWidget {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              // Адаптивная логика колонок
+              // Адаптивное количество колонок (1 для моб, 2 для планшетов, 3 для десктопа)
               final int crossAxisCount = constraints.maxWidth > 1200
                   ? 3
                   : constraints.maxWidth > 800
@@ -97,6 +99,7 @@ class CatalogScreen extends ConsumerWidget {
                     horizontal: horizontalPadding, vertical: 12),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
+                  // Соотношение сторон: длиннее для списка, квадратнее для сетки
                   childAspectRatio: crossAxisCount == 1 ? 2.2 : 1.3,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
@@ -107,7 +110,7 @@ class CatalogScreen extends ConsumerWidget {
                   return BotCard(
                     bot: bot,
                     isGridMode: crossAxisCount > 1,
-                    // ИСПРАВЛЕНО: Переход по categoryKey для открытия экрана тарифов
+                    // Переход к деталям бота по ключу категории
                     onConnect: () => context.push(
                       '/bot-details/${bot.categoryKey}',
                     ),
