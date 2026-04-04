@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/supabase/supabase_client.dart';
 
 class PaymentSuccessScreen extends ConsumerStatefulWidget {
-  const PaymentSuccessScreen({super.key});
+  final String botId;
+
+  const PaymentSuccessScreen({
+    super.key,
+    required this.botId,
+  });
 
   @override
   ConsumerState<PaymentSuccessScreen> createState() =>
@@ -17,7 +21,6 @@ class PaymentSuccessScreen extends ConsumerStatefulWidget {
 class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
   bool _isLoading = true;
   String? _error;
-  String _activeBotId = 'admin_basic';
 
   // ЕДИНСТВЕННЫЙ ВЕРНЫЙ URL БЭКЕНДА
   final String _backendUrl = 'https://stingray-app-ewoo6.ondigitalocean.app';
@@ -35,9 +38,8 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
 
       if (user == null) throw 'Пользователь не авторизован';
 
-      // Восстанавливаем botId из SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final botId = prefs.getString('pending_bot_id') ?? 'admin_basic';
+      // Используем botId напрямую из URL (через конструктор)
+      final String botId = widget.botId;
 
       // 1. Прямой пинг бэкенда на DigitalOcean (пробуждение сервиса)
       try {
@@ -68,13 +70,9 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
             'status': 'active',
           }, onConflict: 'user_id, bot_id');
 
-          // Очищаем после использования
-          await prefs.remove('pending_bot_id');
-
           if (mounted) {
             setState(() {
               _isLoading = false;
-              _activeBotId = botId;
             });
           }
           return;
@@ -140,11 +138,11 @@ class _PaymentSuccessScreenState extends ConsumerState<PaymentSuccessScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16)),
                     onPressed: () {
                       // Динамическое определение категории и имени для навигации
-                      final category = _activeBotId.split('_').first;
+                      final category = widget.botId.split('_').first;
                       final botName =
                           'Dokki ${category[0].toUpperCase()}${category.substring(1)}';
                       context
-                          .go('/bot-config/$_activeBotId/$botName/$category');
+                          .go('/bot-config/${widget.botId}/$botName/$category');
                     },
                     child: const Text('Перейти к настройке',
                         style: TextStyle(color: Colors.white)),

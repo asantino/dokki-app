@@ -8,7 +8,6 @@ import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../navigation/main_screen.dart';
 import '../supabase/supabase_client.dart';
 import '../../features/payment/presentation/screens/payment_screen.dart';
-// ДОБАВЛЯЕМ ЭТОТ ИМПОРТ:
 import '../../features/payment/presentation/screens/payment_success_screen.dart';
 import '../../features/settings/presentation/screens/profile_screen.dart';
 import '../../features/settings/presentation/screens/language_screen.dart';
@@ -30,14 +29,22 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: authListener,
     redirect: (context, state) {
+      debugPrint(
+          '🔀 ROUTER REDIRECT: location=${state.matchedLocation}, uri=${state.uri}');
+
+      // ЗАДАЧА #11: Не трогаем payment-success никогда (защита от сброса при инициализации)
+      if (state.matchedLocation.startsWith('/payment-success')) {
+        return null;
+      }
+
       final session = supabase.auth.currentSession;
       final isLoggedIn = session != null;
       final location = state.matchedLocation;
 
-      // Список защищенных маршрутов
       final isProtectedRoute = location.startsWith('/profile') ||
-          location.startsWith('/payment') ||
-          location.startsWith('/payment-success') || // Добавили защиту сюда
+          (location.startsWith('/payment') &&
+              !location.startsWith('/payment-success') &&
+              !location.startsWith('/payment-cancel')) ||
           location.startsWith('/bot-config') ||
           location.startsWith('/bot-management') ||
           location.startsWith('/price-list') ||
@@ -66,17 +73,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AuthScreen(),
       ),
 
-      // ЭКРАН УСПЕШНОЙ ОПЛАТЫ (Universal Link)
+      // Маршрут с параметром в пути
       GoRoute(
-        path: '/payment-success',
-        builder: (context, state) => const PaymentSuccessScreen(),
+        path: '/payment-success/:botId',
+        builder: (context, state) {
+          final botId = state.pathParameters['botId'] ?? 'admin_basic';
+          return PaymentSuccessScreen(botId: botId);
+        },
       ),
 
-      // ЭКРАН ОТМЕНЫ ОПЛАТЫ (Universal Link)
       GoRoute(
         path: '/payment-cancel',
-        builder: (context, state) =>
-            const MainScreen(), // Или отдельный экран отмены
+        builder: (context, state) => const MainScreen(),
       ),
 
       GoRoute(

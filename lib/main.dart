@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_web_plugins/url_strategy.dart'; // Новый импорт
 import 'core/env/env.dart';
 import 'core/localization/language_provider.dart';
 import 'app.dart';
 
 void main() async {
-  // 1. Инициализация движка Flutter (обязательно для доступа к платформенным плагинам до runApp)
+  // 1. Инициализация движка Flutter
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Шаг 1: Установка стратегии URL без символа решетки (#)
+  usePathUrlStrategy();
+
   // 2. Предварительная загрузка SharedPreferences
-  // Это гарантирует, что при создании LanguageNotifier данные уже будут в памяти
   final prefs = await SharedPreferences.getInstance();
 
   // 3. Инициализация Supabase
@@ -23,10 +26,9 @@ void main() async {
   runApp(
     ProviderScope(
       overrides: [
-        // 4. Внедряем инициализированный экземпляр SharedPreferences в систему Riverpod
+        // 4. Внедряем инициализированный экземпляр SharedPreferences
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
-      // Важно: убираем const у ProviderScope, так как overrides вычисляется в runtime
       child: const DokkiApp(),
     ),
   );

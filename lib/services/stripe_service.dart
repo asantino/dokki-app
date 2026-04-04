@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:js' as js;
 
 class StripeService {
   final _supabase = Supabase.instance.client;
@@ -9,7 +10,7 @@ class StripeService {
   // Актуальный Price ID из Stripe
   static const String priceId = 'price_1THeDO1nVM8AbdfCUeaylULL';
 
-  /// Создает сессию оплаты и запоминает, какого бота мы покупаем
+  /// Создает сессию оплаты с передачей botId в пути URL
   Future<void> createCheckoutSession({required String botId}) async {
     final session = _supabase.auth.currentSession;
 
@@ -19,19 +20,15 @@ class StripeService {
     }
 
     try {
-      // 💾 ШАГ 1: Сохраняем botId локально ДО редиректа
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('pending_bot_id', botId);
-      debugPrint('StripeService: Saved pending_bot_id: $botId');
+      debugPrint(
+          'StripeService: Initiating checkout session for bot $botId...');
 
-      debugPrint('StripeService: Initiating checkout session...');
-
-      // ШАГ 2: Запрашиваем сессию у Supabase Edge Function
+      // ЗАДАЧА #10: Передаем botId как часть пути для надежности редиректа
       final response = await _supabase.functions.invoke(
         'create-checkout-session',
         body: {
           'priceId': priceId,
-          'successUrl': 'https://app.dokki.org/payment-success',
+          'successUrl': 'https://app.dokki.org/payment-success/$botId',
           'cancelUrl': 'https://app.dokki.org/payment-cancel',
         },
       );
@@ -40,13 +37,18 @@ class StripeService {
         final String? stripeRedirectUrl = response.data['url'];
 
         if (stripeRedirectUrl != null && stripeRedirectUrl.startsWith('http')) {
-          final uri = Uri.parse(stripeRedirectUrl);
+          if (kIsWeb) {
+            // Открываем Stripe в той же вкладке через JS
+            js.context.callMethod(
+                'eval', ['window.location.href = "$stripeRedirectUrl"']);
+          } else {
+            // На мобиле — внешнее приложение
+            final uri = Uri.parse(stripeRedirectUrl);
+            final launched =
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
 
-          // Открываем Stripe во внешнем браузере
-          final launched =
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
-
-          if (!launched) throw 'Could not launch payment URL';
+            if (!launched) throw 'Could not launch payment URL';
+          }
         } else {
           throw 'Server returned invalid checkout URL';
         }
