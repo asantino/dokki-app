@@ -1,8 +1,11 @@
+// lib/features/bot_management/presentation/screens/bot_management_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../../domain/business.dart';
 import '../../providers/bot_management_providers.dart';
 import '../../data/price_parser.dart';
@@ -38,7 +41,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     super.dispose();
   }
 
-  /// Метод выбора и обработки файла (Задачи 33-34)
+  /// Метод выбора и обработки файла (Загрузка прайс-листа)
   Future<void> _pickPriceFile() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.any);
     if (result == null || result.files.single.path == null) {
@@ -48,6 +51,8 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // Генерируем индивидуальный URL бота на основе ID бизнеса
+      final botUrl = ApiConstants.getBotUrl(widget.business.id);
       final filePath = result.files.single.path!;
       final products = await PriceParser.parseFile(filePath);
 
@@ -60,8 +65,9 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
         return;
       }
 
-      // 1. Загружаем текущий прайс для сравнения дубликатов
+      // 1. Загружаем текущий прайс для поиска дубликатов
       final existing = await ref.read(priceListRepositoryProvider).getProducts(
+            botUrl: botUrl,
             telegramUsername: widget.business.telegramUsername,
           );
 
@@ -74,11 +80,9 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
             .contains(p['name'].toString().toLowerCase().trim());
       }).length;
 
-      // 2. Показываем диалог выбора режима
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
+      // 2. Диалог выбора режима импорта
       final mode = await showDialog<String>(
         context: context,
         barrierDismissible: false,
@@ -138,15 +142,14 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
         ),
       );
 
-      if (mode == null) {
-        return;
-      }
+      if (mode == null) return;
 
-      // 3. Выполнение импорта (Задача 34)
+      // 3. Выполнение импорта через репозиторий
       bool success = false;
 
       if (mode == 'replace') {
         success = await ref.read(priceListRepositoryProvider).uploadPriceList(
+              botUrl: botUrl,
               telegramUsername: widget.business.telegramUsername,
               products: products,
             );
@@ -166,6 +169,7 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
         }
 
         success = await ref.read(priceListRepositoryProvider).addProducts(
+              botUrl: botUrl,
               telegramUsername: widget.business.telegramUsername,
               products: newProducts,
             );
@@ -195,19 +199,35 @@ class _BotManagementScreenState extends ConsumerState<BotManagementScreen> {
     }
   }
 
+  /// Сохранение системного промпта
   Future<void> _handleSave() async {
     setState(() => _isSaving = true);
     try {
+      // Генерируем URL бота для конкретного бизнеса
+      final botUrl = ApiConstants.getBotUrl(widget.business.id);
+
+      // Важно: передаем botUrl в репозиторий промптов
       final bool success =
           await ref.read(botPromptRepositoryProvider).updateSystemPrompt(
+                botUrl: botUrl,
                 telegramUsername: widget.business.telegramUsername,
                 systemPrompt: _promptController.text.trim(),
               );
+
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Инструкции сохранены'),
               backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка сохранения: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {

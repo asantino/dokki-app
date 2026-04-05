@@ -1,12 +1,16 @@
 class ApiConstants {
-  /// 🤖 URL основного бота (развёрнут на DigitalOcean)
-  ///
-  /// ВАЖНО: Это единственный сервер для ВСЕХ клиентов (multi-tenant)
-  /// При переносе на другой хостинг — меняй только этот URL
-  static const String botBaseUrl =
-      'https://stingray-app-ewoo6.ondigitalocean.app';
+  /// URL оркестратора деплоя на Railway
+  static const String deployServiceUrl =
+      'https://dokki-deploy-service-production-a748.up.railway.app';
 
-  static const String configEndpoint = '/api/config';
+  /// Конечная точка для деплоя нового бота
+  static String get deployUrl => '$deployServiceUrl/deploy';
 
-  static String get configUrl => '$botBaseUrl$configEndpoint';
+  /// Генерирует URL индивидуального бота на основе ID бизнеса.
+  /// Railway использует shortId (первые 8 символов UUID без дефисов).
+  static String getBotUrl(String businessId) {
+    if (businessId.isEmpty) return '';
+    final shortId = businessId.replaceAll('-', '').substring(0, 8);
+    return 'https://dokki-$shortId-production.up.railway.app';
+  }
 }

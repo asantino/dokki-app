@@ -1,17 +1,20 @@
+// lib/features/bot_management/data/price_list_repository.dart
+
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import '../../../../core/constants/api_constants.dart';
 
 class PriceListRepository {
   /// Массовая загрузка/перезапись (DELETE + INSERT)
+  /// [botUrl] — это URL конкретного бота в Railway (напр. https://dokki-abc-production.up.railway.app)
   Future<bool> uploadPriceList({
+    required String botUrl,
     required String telegramUsername,
     required List<Map<String, dynamic>> products,
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('${ApiConstants.botBaseUrl}/api/prices/upload'),
+        Uri.parse('$botUrl/api/prices/upload'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'telegram_username': telegramUsername,
@@ -25,15 +28,16 @@ class PriceListRepository {
     }
   }
 
-  /// Добавление товаров без удаления существующих (Задача 34)
+  /// Добавление товаров без удаления существующих
   Future<bool> addProducts({
+    required String botUrl,
     required String telegramUsername,
     required List<Map<String, dynamic>> products,
   }) async {
     try {
-      // Временное решение: последовательный UPSERT через update-single
       for (final product in products) {
         await updateProduct(
+          botUrl: botUrl,
           telegramUsername: telegramUsername,
           product: product,
         );
@@ -47,6 +51,7 @@ class PriceListRepository {
 
   /// Получение списка товаров
   Future<List<Map<String, dynamic>>> getProducts({
+    required String botUrl,
     required String telegramUsername,
     String? searchQuery,
     int limit = 50,
@@ -54,13 +59,12 @@ class PriceListRepository {
   }) async {
     try {
       final response = await http.get(
-        Uri.parse(
-            '${ApiConstants.botBaseUrl}/api/prices/by-username/$telegramUsername'),
+        Uri.parse('$botUrl/api/prices/by-username/$telegramUsername'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         List<Map<String, dynamic>> products =
-            List<Map<String, dynamic>>.from(data['products']);
+            List<Map<String, dynamic>>.from(data['products'] ?? []);
 
         if (searchQuery != null && searchQuery.isNotEmpty) {
           products = products
@@ -74,18 +78,20 @@ class PriceListRepository {
       }
       return [];
     } catch (e) {
+      debugPrint('Get Products Error: $e');
       return [];
     }
   }
 
   /// Создание/Обновление одной позиции
   Future<bool> updateProduct({
+    required String botUrl,
     required String telegramUsername,
     required Map<String, dynamic> product,
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('${ApiConstants.botBaseUrl}/api/prices/update-single'),
+        Uri.parse('$botUrl/api/prices/update-single'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'telegram_username': telegramUsername,
@@ -101,12 +107,13 @@ class PriceListRepository {
 
   /// Удаление одной позиции
   Future<bool> deleteProduct({
+    required String botUrl,
     required String telegramUsername,
     required String productId,
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse('${ApiConstants.botBaseUrl}/api/prices/delete-single'),
+        Uri.parse('$botUrl/api/prices/delete-single'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'telegram_username': telegramUsername,
@@ -115,6 +122,7 @@ class PriceListRepository {
       );
       return response.statusCode == 200;
     } catch (e) {
+      debugPrint('Delete Product Error: $e');
       return false;
     }
   }

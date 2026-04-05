@@ -1,7 +1,10 @@
+// lib/features/bot_management/presentation/screens/product_edit_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/constants/api_constants.dart'; // Добавлен импорт
 import '../../domain/business.dart';
 import '../../providers/bot_management_providers.dart';
 
@@ -32,7 +35,6 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
   @override
   void initState() {
     super.initState();
-    // Инициализация контроллеров данными из Map или пустыми строками
     _nameController =
         TextEditingController(text: widget.product?['name'] ?? '');
     _priceController = TextEditingController(
@@ -59,10 +61,12 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
     setState(() => _isSaving = true);
 
-    // Собираем объект товара для API
+    // 1. Генерируем динамический URL бота
+    final botUrl = ApiConstants.getBotUrl(widget.business.id);
+
+    // 2. Собираем объект товара для API
     final productData = {
-      if (isEditing)
-        'id': widget.product!['id'], // Передаем ID только при редактировании
+      if (isEditing) 'id': widget.product!['id'],
       'name': _nameController.text.trim(),
       'price': double.tryParse(_priceController.text) ?? 0.0,
       'category': _categoryController.text.trim(),
@@ -70,7 +74,9 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     };
 
     try {
+      // 3. Вызываем репозиторий с обязательным параметром botUrl
       final success = await ref.read(priceListRepositoryProvider).updateProduct(
+            botUrl: botUrl,
             telegramUsername: widget.business.telegramUsername,
             product: productData,
           );
@@ -81,10 +87,9 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
               content: Text('Успешно сохранено'),
               backgroundColor: Colors.green),
         );
-        context
-            .pop(true); // Возвращаем true, чтобы PriceListScreen обновил список
+        context.pop(true);
       } else if (mounted) {
-        throw Exception('Ошибка при сохранении на сервере Fly.io');
+        throw Exception('Ошибка при сохранении на сервере Railway');
       }
     } catch (e) {
       debugPrint('Error saving product: $e');
@@ -125,14 +130,29 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
     if (confirm != true) return;
 
     setState(() => _isSaving = true);
+
+    // Генерируем URL для удаления
+    final botUrl = ApiConstants.getBotUrl(widget.business.id);
+    final productId =
+        (widget.product!['product_id'] ?? widget.product!['id']).toString();
+
     try {
       final success = await ref.read(priceListRepositoryProvider).deleteProduct(
+            botUrl: botUrl,
             telegramUsername: widget.business.telegramUsername,
-            productId: widget.product!['id'].toString(),
+            productId: productId,
           );
 
       if (success && mounted) {
         context.pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Ошибка удаления: $e'),
+              backgroundColor: AppColors.error),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

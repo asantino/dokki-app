@@ -1,10 +1,12 @@
+// lib/features/bot_management/presentation/screens/bot_config_screen.dart
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart'; // Добавлен импорт
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../providers/bot_management_providers.dart';
@@ -73,26 +75,31 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final url = Uri.parse(ApiConstants.configUrl);
+      final url = Uri.parse(ApiConstants.deployUrl);
 
-      // ИЗМЕНЕНО: Добавлен business_id из сессии Supabase
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'business_id': Supabase.instance.client.auth.currentUser?.id ?? '',
-          'telegram_token': _botTokenController.text.trim(),
-          'openai_key': _apiKeyController.text.trim(),
-          'business_name': _businessNameController.text.trim(),
-          'welcome_message': _welcomeController.text.trim(),
-        }),
-      );
+      // Отправляем запрос на оркестратор деплоя
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'businessId': Supabase.instance.client.auth.currentUser?.id ?? '',
+              'botToken': _botTokenController.text.trim(),
+              'openaiKey': _apiKeyController.text.trim(),
+              'businessName': _businessNameController.text.trim(),
+              'welcomeMessage': _welcomeController.text.trim(),
+            }),
+          )
+          .timeout(
+              const Duration(minutes: 3)); // Увеличенный таймаут для Railway
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
-        final telegramUsername = data['username'] as String? ?? '';
+        // Читаем telegramUsername из ответа оркестратора
+        final telegramUsername = data['telegramUsername'] as String? ?? '';
 
+        // Сохраняем локально и в репозиторий бизнеса
         await ref.read(businessRepositoryProvider).connectBot(
               botId: widget.botId,
               botToken: _botTokenController.text.trim(),
@@ -106,13 +113,13 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
 
         if (mounted) _showSuccessDialog(telegramUsername);
       } else {
-        final errorMessage = data['error'] ?? 'Ошибка сохранения';
+        final errorMessage = data['error'] ?? 'Ошибка деплоя';
         final errorField = data['field'];
 
         setState(() {
-          if (errorField == 'telegram_token') _botTokenError = errorMessage;
-          if (errorField == 'openai_key') _apiKeyError = errorMessage;
-          if (errorField == 'business_name') _businessNameError = errorMessage;
+          if (errorField == 'botToken') _botTokenError = errorMessage;
+          if (errorField == 'openaiKey') _apiKeyError = errorMessage;
+          if (errorField == 'businessName') _businessNameError = errorMessage;
         });
 
         throw Exception(errorMessage);
@@ -137,10 +144,10 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text('✅ Бот подключён!',
+        title: const Text('✅ Бот в очереди на деплой!',
             style: TextStyle(color: AppColors.textPrimary)),
         content: Text(
-          'Ваш бот $username готов к работе.\n\nНапишите ему /start в Telegram для проверки.',
+          'Ваш бот $username создаётся на сервере.\n\nЭто займёт 1-2 минуты. Бот сам напишет вам в Telegram, когда будет готов.',
           style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
@@ -149,7 +156,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
               Navigator.of(context).pop();
               context.go('/');
             },
-            child: const Text('Перейти к ботам',
+            child: const Text('Понятно',
                 style: TextStyle(color: AppColors.accent)),
           ),
         ],
@@ -188,7 +195,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Настройка ИИ'),
+        title: const Text('Настройка и Деплой'),
         backgroundColor: AppColors.background,
         elevation: 0,
       ),
@@ -211,23 +218,20 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: AppColors.accent),
+                        Icon(Icons.rocket_launch_outlined,
+                            color: AppColors.accent),
                         SizedBox(width: 8),
-                        Text('Как подключить бота',
+                        Text('Запуск персонального бота',
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary)),
                       ],
                     ),
                     SizedBox(height: 12),
-                    Text('1. Откройте @BotFather в Telegram',
-                        style: TextStyle(color: AppColors.textSecondary)),
-                    Text('2. Отправьте команду /newbot',
-                        style: TextStyle(color: AppColors.textSecondary)),
-                    Text('3. Следуйте инструкциям',
-                        style: TextStyle(color: AppColors.textSecondary)),
-                    Text('4. Скопируйте токен бота',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                    Text(
+                        'Мы создадим для вас отдельный проект на Railway и запустим в нём вашего ИИ-ассистента.',
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 13)),
                   ],
                 ),
               ),
@@ -241,7 +245,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                     child: TextFormField(
                       controller: _botTokenController,
                       obscureText: _obscureBotToken,
-                      autofillHints: const [AutofillHints.password],
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: _buildDecor(
                         'Telegram Bot Token',
@@ -256,10 +259,8 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                               () => _obscureBotToken = !_obscureBotToken),
                         ),
                       ).copyWith(errorText: _botTokenError),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Введите токен';
-                        return null;
-                      },
+                      validator: (v) =>
+                          (v == null || v.isEmpty) ? 'Введите токен' : null,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -278,7 +279,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                           });
                         }
                       },
-                      tooltip: 'Paste',
                     ),
                   ),
                 ],
@@ -294,7 +294,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                     child: TextFormField(
                       controller: _apiKeyController,
                       obscureText: _obscureApiKey,
-                      autofillHints: const [AutofillHints.password],
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: _buildDecor(
                         'OpenAI API Key',
@@ -335,7 +334,6 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                           });
                         }
                       },
-                      tooltip: 'Paste',
                     ),
                   ),
                 ],
@@ -348,10 +346,8 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                 decoration:
                     _buildDecor('Название компании', 'Напр: Dokki Sales')
                         .copyWith(errorText: _businessNameError),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Введите название';
-                  return null;
-                },
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Введите название' : null,
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -381,7 +377,7 @@ class _BotConfigScreenState extends ConsumerState<BotConfigScreen> {
                               color: Colors.white, strokeWidth: 2.5),
                         )
                       : const Text(
-                          'ПОДКЛЮЧИТЬ БОТА',
+                          'ЗАПУСТИТЬ ДЕПЛОЙ',
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
